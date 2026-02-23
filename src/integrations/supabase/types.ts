@@ -14,7 +14,153 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      challenges: {
+        Row: {
+          challenge_code: string
+          challenged_result_id: string | null
+          challenged_user_id: string | null
+          challenger_id: string
+          challenger_result_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          challenge_code?: string
+          challenged_result_id?: string | null
+          challenged_user_id?: string | null
+          challenger_id: string
+          challenger_result_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          challenge_code?: string
+          challenged_result_id?: string | null
+          challenged_user_id?: string | null
+          challenger_id?: string
+          challenger_result_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenges_challenged_result_id_fkey"
+            columns: ["challenged_result_id"]
+            isOneToOne: false
+            referencedRelation: "test_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenges_challenger_result_id_fkey"
+            columns: ["challenger_result_id"]
+            isOneToOne: false
+            referencedRelation: "test_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          country: string | null
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          avatar_url?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      test_results: {
+        Row: {
+          age_group: string
+          ai_insight: string | null
+          blind_spots: string[] | null
+          created_at: string
+          creativity: number
+          difficulty: string
+          emotional_intelligence: number
+          famous_match: string | null
+          famous_match_reason: string | null
+          field: string
+          id: string
+          intuition: number
+          logic: number
+          overall_score: number
+          percentile: number
+          subfield: string
+          superpowers: string[] | null
+          systems_thinking: number
+          tier: number
+          tier_title: string
+          user_id: string
+        }
+        Insert: {
+          age_group: string
+          ai_insight?: string | null
+          blind_spots?: string[] | null
+          created_at?: string
+          creativity?: number
+          difficulty: string
+          emotional_intelligence?: number
+          famous_match?: string | null
+          famous_match_reason?: string | null
+          field: string
+          id?: string
+          intuition?: number
+          logic?: number
+          overall_score?: number
+          percentile?: number
+          subfield: string
+          superpowers?: string[] | null
+          systems_thinking?: number
+          tier?: number
+          tier_title?: string
+          user_id: string
+        }
+        Update: {
+          age_group?: string
+          ai_insight?: string | null
+          blind_spots?: string[] | null
+          created_at?: string
+          creativity?: number
+          difficulty?: string
+          emotional_intelligence?: number
+          famous_match?: string | null
+          famous_match_reason?: string | null
+          field?: string
+          id?: string
+          intuition?: number
+          logic?: number
+          overall_score?: number
+          percentile?: number
+          subfield?: string
+          superpowers?: string[] | null
+          systems_thinking?: number
+          tier?: number
+          tier_title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
