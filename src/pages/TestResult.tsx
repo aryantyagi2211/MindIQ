@@ -3,11 +3,11 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { getTier, getCountryFlag } from "@/lib/constants";
+import { getTier } from "@/lib/constants";
 import { toast } from "sonner";
 import ResultCard from "@/components/ResultCard";
 import { Button } from "@/components/ui/button";
-import { Share2, Download, Swords, Loader2 } from "lucide-react";
+import { Share2, Download, Swords, Loader2, BarChart3 } from "lucide-react";
 import { toPng } from "html-to-image";
 
 export default function TestResult() {
@@ -21,12 +21,34 @@ export default function TestResult() {
   const [displayPercentile, setDisplayPercentile] = useState(0);
   const [phase, setPhase] = useState<"black" | "text" | "reveal" | "done">("black");
   const [resultId, setResultId] = useState<string | null>(null);
+  const [username, setUsername] = useState("You");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+
+  // Calculate stats from answers
+  const totalQuestions = questions?.length || 15;
+  const attempted = answers ? Object.keys(answers).length : 0;
+  const [correctCount, setCorrectCount] = useState(0);
 
   useEffect(() => {
     if (!questions) { navigate("/"); return; }
+
+    // Fetch profile
+    if (user) {
+      supabase.from("profiles").select("username, avatar_url").eq("user_id", user.id).single()
+        .then(({ data }) => {
+          if (data) {
+            setUsername(data.username);
+            setAvatarUrl(data.avatar_url);
+          }
+        });
+    }
+
     scoreAndSave();
   }, []);
+
+  // Count how many test attempts user has
+  const [attemptCount, setAttemptCount] = useState(1);
 
   const scoreAndSave = async () => {
     try {
@@ -38,8 +60,8 @@ export default function TestResult() {
 
       const s = data.scores;
       setScores(s);
+      if (typeof data.correctCount === "number") setCorrectCount(data.correctCount);
 
-      // Calculate percentile from DB
       const { count: totalCount } = await supabase.from("test_results").select("*", { count: "exact", head: true });
       const { count: lowerCount } = await supabase.from("test_results").select("*", { count: "exact", head: true }).lt("overall_score", s.overallScore);
       
@@ -50,8 +72,11 @@ export default function TestResult() {
 
       const tier = getTier(pct);
 
-      // Save to DB
       if (user) {
+        // Count previous attempts
+        const { count: prevCount } = await supabase.from("test_results").select("*", { count: "exact", head: true }).eq("user_id", user.id);
+        setAttemptCount((prevCount || 0) + 1);
+
         const { data: insertData } = await supabase.from("test_results").insert({
           user_id: user.id,
           age_group: ageGroup,
@@ -77,7 +102,6 @@ export default function TestResult() {
         if (insertData) setResultId(insertData.id);
       }
 
-      // Start cinematic reveal
       startReveal(pct);
     } catch (e: any) {
       toast.error("Scoring failed: " + e.message);
@@ -88,15 +112,11 @@ export default function TestResult() {
     setTimeout(() => setPhase("text"), 1000);
     setTimeout(() => setPhase("reveal"), 3500);
     setTimeout(() => {
-      // Count up percentile
       let current = 0;
       const target = pct;
       const interval = setInterval(() => {
         current += 1;
-        if (current >= target) {
-          current = target;
-          clearInterval(interval);
-        }
+        if (current >= target) { current = target; clearInterval(interval); }
         setDisplayPercentile(current);
       }, 20);
       setPhase("done");
@@ -123,10 +143,7 @@ export default function TestResult() {
   };
 
   const handleChallenge = async () => {
-    if (!user || !resultId) {
-      toast.error("You must be logged in");
-      return;
-    }
+    if (!user || !resultId) { toast.error("You must be logged in"); return; }
     const { data, error } = await supabase.from("challenges").insert({
       challenger_id: user.id,
       challenger_result_id: resultId,
@@ -138,17 +155,12 @@ export default function TestResult() {
     toast.success("Challenge link copied to clipboard!");
   };
 
-  // Cinematic phases
   if (phase === "black" || phase === "text") {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <AnimatePresence>
           {phase === "black" && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center"
-            >
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
               <p className="text-sm text-muted-foreground mt-4">Analyzing your cognitive signature...</p>
             </motion.div>
@@ -173,7 +185,7 @@ export default function TestResult() {
   const tier = getTier(percentile);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 gap-8">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 gap-6">
       <motion.div
         initial={{ scale: 0.5, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -186,6 +198,14 @@ export default function TestResult() {
           scores={scores}
           field={subfield}
           phase={phase}
+          username={username}
+          avatarUrl={avatarUrl}
+          stats={{
+            totalQuestions,
+            attempted,
+            correct: correctCount,
+            attempts: attemptCount,
+          }}
         />
       </motion.div>
 
@@ -194,19 +214,19 @@ export default function TestResult() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.5 }}
-          className="flex flex-wrap gap-3 justify-center"
+          className="flex gap-3 justify-center"
         >
-          <Button variant="outline" onClick={handleShare}>
-            <Share2 className="mr-2 h-4 w-4" /> Share to Twitter
+          <Button variant="outline" size="icon" onClick={handleShare} title="Share to Twitter">
+            <Share2 className="h-4 w-4" />
           </Button>
-          <Button variant="outline" onClick={handleDownload}>
-            <Download className="mr-2 h-4 w-4" /> Download Card
+          <Button variant="outline" size="icon" onClick={handleDownload} title="Download Card">
+            <Download className="h-4 w-4" />
           </Button>
-          <Button onClick={handleChallenge}>
-            <Swords className="mr-2 h-4 w-4" /> Challenge a Friend
+          <Button size="icon" onClick={handleChallenge} title="Challenge a Friend">
+            <Swords className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" onClick={() => navigate("/leaderboard")}>
-            View Leaderboard
+          <Button variant="ghost" size="icon" onClick={() => navigate("/leaderboard")} title="Leaderboard">
+            <BarChart3 className="h-4 w-4" />
           </Button>
         </motion.div>
       )}
