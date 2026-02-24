@@ -7,32 +7,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { getTier, getCountryFlag } from "@/lib/constants";
 import Header from "@/components/Header";
-
-function FloatingCard({ result, delay }: { result: any; delay: number }) {
-  const tier = getTier(result.percentile);
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 40 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.6 }}
-      className={`${tier.cardClass} rounded-xl p-4 w-56 animate-float`}
-      style={{ animationDelay: `${delay * 2}s` }}
-    >
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs text-muted-foreground">{result.field}</span>
-        <span className="text-xs font-bold text-primary">{result.percentile}th</span>
-      </div>
-      <p className="text-sm font-semibold text-foreground">{tier.title}</p>
-      <p className="text-xs text-muted-foreground mt-1">{result.username || "Anonymous"}</p>
-    </motion.div>
-  );
-}
+import ResultCard from "@/components/ResultCard";
 
 export default function Index() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [totalMinds, setTotalMinds] = useState(0);
   const [recentResults, setRecentResults] = useState<any[]>([]);
+  const [userResult, setUserResult] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -41,7 +24,7 @@ export default function Index() {
 
       const { data } = await supabase
         .from("test_results")
-        .select("*, profiles!inner(username, country)")
+        .select("*, profiles!inner(username, country, avatar_url)")
         .order("created_at", { ascending: false })
         .limit(6);
       
@@ -52,9 +35,71 @@ export default function Index() {
           country: r.profiles?.country,
         })));
       }
+
+      // Fetch user's latest result
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("user_id", user.id)
+          .single();
+        if (profile) setUserProfile(profile);
+
+        const { data: result } = await supabase
+          .from("test_results")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single();
+        if (result) setUserResult(result);
+      }
     };
     fetchData();
-  }, []);
+  }, [user]);
+
+  // Build card data - real or fake
+  const cardData = userResult
+    ? {
+        percentile: userResult.percentile,
+        scores: {
+          logic: userResult.logic,
+          creativity: userResult.creativity,
+          intuition: userResult.intuition,
+          emotionalIntelligence: userResult.emotional_intelligence,
+          systemsThinking: userResult.systems_thinking,
+          overallScore: userResult.overall_score,
+          famousMatch: userResult.famous_match || "",
+          famousMatchReason: userResult.famous_match_reason || "",
+          superpowers: userResult.superpowers || [],
+          blindSpots: userResult.blind_spots || [],
+          aiInsight: userResult.ai_insight || "",
+        },
+        username: userProfile?.username || "You",
+        avatarUrl: userProfile?.avatar_url,
+        field: userResult.subfield,
+      }
+    : {
+        percentile: 94,
+        scores: {
+          logic: 88,
+          creativity: 92,
+          intuition: 76,
+          emotionalIntelligence: 85,
+          systemsThinking: 90,
+          overallScore: 86,
+          famousMatch: "Alan Turing",
+          famousMatchReason: "",
+          superpowers: [],
+          blindSpots: [],
+          aiInsight: "",
+        },
+        username: "Your Name Here",
+        avatarUrl: null,
+        field: "AI/ML",
+      };
+
+  const tier = getTier(cardData.percentile);
 
   return (
     <div className="min-h-screen bg-background">
@@ -144,47 +189,31 @@ export default function Index() {
             </div>
           </motion.div>
 
-          {/* Right - floating cards */}
+          {/* Right - single result card */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3, duration: 0.8 }}
-            className="hidden lg:flex flex-col items-center gap-6 relative"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.4, duration: 0.8, type: "spring" }}
+            className="hidden lg:flex flex-col items-center"
           >
-            {recentResults.length > 0 ? (
-              <div className="grid grid-cols-2 gap-4">
-                {recentResults.slice(0, 6).map((r, i) => (
-                  <FloatingCard key={r.id} result={r} delay={0.4 + i * 0.15} />
-                ))}
-              </div>
-            ) : (
-              /* Placeholder cards when no data */
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  { percentile: 97, field: "AI/ML", tier_title: "Apex Intellect" },
-                  { percentile: 82, field: "Physics", tier_title: "Advanced Mind" },
-                  { percentile: 65, field: "Finance", tier_title: "Sharp Thinker" },
-                  { percentile: 99, field: "Neuroscience", tier_title: "⚡ MASTERMIND" },
-                ].map((mock, i) => {
-                  const tier = getTier(mock.percentile);
-                  return (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, y: 40 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.4 + i * 0.15, duration: 0.6 }}
-                      className={`${tier.cardClass} rounded-xl p-4 w-56 animate-float`}
-                      style={{ animationDelay: `${i * 1.5}s` }}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs text-muted-foreground">{mock.field}</span>
-                        <span className="text-xs font-bold text-primary">{mock.percentile}th</span>
-                      </div>
-                      <p className="text-sm font-semibold text-foreground">{tier.title}</p>
-                    </motion.div>
-                  );
-                })}
-              </div>
+            <ResultCard
+              percentile={cardData.percentile}
+              tier={tier}
+              scores={cardData.scores}
+              field={cardData.field}
+              phase="done"
+              username={cardData.username}
+              avatarUrl={cardData.avatarUrl}
+            />
+            {!userResult && (
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.2 }}
+                className="text-sm text-muted-foreground mt-4 italic"
+              >
+                This could be your card. Take the test →
+              </motion.p>
             )}
           </motion.div>
         </div>
