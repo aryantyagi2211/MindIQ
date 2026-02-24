@@ -78,6 +78,11 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Space Grotesk', system-ui, sans-serif;
+    background-image: url('@/assets/bg-main.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
   }
 }
 
