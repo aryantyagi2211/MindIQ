@@ -4,7 +4,14 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { FIELDS, AGE_GROUPS, DIFFICULTIES, Field } from "@/lib/constants";
 import Header from "@/components/Header";
-import { Brain, ChevronRight } from "lucide-react";
+import { Brain, ChevronRight, ListChecks, MessageSquareText } from "lucide-react";
+
+const EXAM_TYPES = [
+  { key: "mcq", label: "MCQ", icon: ListChecks, desc: "Multiple choice questions" },
+  { key: "qa", label: "Q&A", icon: MessageSquareText, desc: "Open-ended written answers" },
+] as const;
+
+type ExamType = typeof EXAM_TYPES[number]["key"];
 
 export default function TestSetup() {
   const navigate = useNavigate();
@@ -12,13 +19,14 @@ export default function TestSetup() {
   const [difficulty, setDifficulty] = useState("");
   const [field, setField] = useState<Field | "">("");
   const [subfield, setSubfield] = useState("");
+  const [examType, setExamType] = useState<ExamType>("mcq");
 
   const canStart = ageGroup && difficulty && field && subfield;
 
   const handleStart = () => {
     if (!canStart) return;
     navigate("/test/take", {
-      state: { ageGroup, difficulty, field, subfield },
+      state: { ageGroup, difficulty, field, subfield, examType },
     });
   };
 
@@ -28,8 +36,6 @@ export default function TestSetup() {
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-[radial-gradient(ellipse_at_center,hsl(45_100%_51%/0.08),transparent_70%)]" />
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[1000px] h-[400px] bg-[radial-gradient(ellipse_at_center,hsl(45_100%_51%/0.06),transparent_70%)]" />
-        <div className="absolute top-1/4 left-0 w-[300px] h-[300px] bg-[radial-gradient(circle,hsl(45_100%_51%/0.04),transparent_70%)]" />
-        <div className="absolute top-1/4 right-0 w-[300px] h-[300px] bg-[radial-gradient(circle,hsl(45_100%_51%/0.04),transparent_70%)]" />
       </div>
 
       <Header />
@@ -38,11 +44,7 @@ export default function TestSetup() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-10">
           {/* Title */}
           <div className="text-center space-y-3">
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.1 }}
-            >
+            <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.1 }}>
               <Brain className="h-14 w-14 text-primary mx-auto drop-shadow-[0_0_20px_hsl(45_100%_51%/0.5)]" />
             </motion.div>
             <h1 className="text-4xl md:text-5xl font-bold text-foreground">Configure Your Assessment</h1>
@@ -56,6 +58,33 @@ export default function TestSetup() {
             transition={{ delay: 0.2 }}
             className="rounded-2xl border border-border/60 bg-card/40 backdrop-blur-sm p-8 space-y-8"
           >
+            {/* Exam Type */}
+            <div className="space-y-3">
+              <label className="text-sm font-semibold text-foreground tracking-wide">Exam Type</label>
+              <div className="grid grid-cols-2 gap-3">
+                {EXAM_TYPES.map(et => {
+                  const Icon = et.icon;
+                  return (
+                    <button
+                      key={et.key}
+                      onClick={() => setExamType(et.key)}
+                      className={`flex items-center gap-3 p-4 rounded-xl border transition-all duration-200 ${
+                        examType === et.key
+                          ? "border-primary bg-primary/10 shadow-[0_0_20px_hsl(45_100%_51%/0.15)]"
+                          : "border-border hover:border-muted-foreground/50"
+                      }`}
+                    >
+                      <Icon className={`h-6 w-6 ${examType === et.key ? "text-primary" : "text-muted-foreground"}`} />
+                      <div className="text-left">
+                        <p className={`font-bold text-sm ${examType === et.key ? "text-primary" : "text-foreground"}`}>{et.label}</p>
+                        <p className="text-xs text-muted-foreground">{et.desc}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Age Group & Difficulty row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-3">
@@ -141,11 +170,7 @@ export default function TestSetup() {
           </motion.div>
 
           {/* Begin button */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
             <button
               disabled={!canStart}
               onClick={handleStart}
