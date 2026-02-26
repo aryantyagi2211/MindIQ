@@ -46,10 +46,10 @@ export default function TestSetup() {
   };
 
   return (
-    <div className="min-h-screen bg-[#010101] text-white relative overflow-hidden font-sans select-none">
-      {/* EXTREME FUTURISTIC BACKGROUND */}
+    <div className="min-h-screen bg-background text-white relative overflow-hidden font-sans select-none">
+      {/* FUTURISTIC OVERLAY - transparent to show bg image */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute inset-0 bg-[#000000]" />
+        <div className="absolute inset-0 bg-background/40" />
         <motion.div
           animate={{ opacity: [0.15, 0.4, 0.15], x: [-40, 40, -40], y: [-40, 40, -40] }}
           transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
