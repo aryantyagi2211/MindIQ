@@ -1,11 +1,29 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Brain, LogOut, User, Trophy } from "lucide-react";
+import { Brain, LogOut, User, Trophy, Hash, Percent } from "lucide-react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Header() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const [showAsScore, setShowAsScore] = useState(false);
+  const [isTopPerformer, setIsTopPerformer] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("test_results").select("percentile").eq("user_id", user.id)
+      .order("percentile", { ascending: false }).limit(1).single()
+      .then(({ data }) => {
+        if (data && data.percentile >= 95) setIsTopPerformer(true);
+      });
+  }, [user]);
+
+  // Expose toggle state globally for other components
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("mindiq-score-mode", { detail: { showAsScore } }));
+  }, [showAsScore]);
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
@@ -22,6 +40,16 @@ export default function Header() {
           <Link to="/hall-of-fame" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             Hall of Fame
           </Link>
+          {isTopPerformer && (
+            <button
+              onClick={() => setShowAsScore(prev => !prev)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/30 text-xs font-bold text-primary hover:bg-primary/20 transition-all"
+              title="Toggle between percentile and score display"
+            >
+              {showAsScore ? <Hash className="h-3.5 w-3.5" /> : <Percent className="h-3.5 w-3.5" />}
+              {showAsScore ? "Score" : "%ile"}
+            </button>
+          )}
         </nav>
 
         <div className="flex items-center gap-3">

@@ -32,7 +32,7 @@ function TimerRing({ timeLeft, timeLimit }: { timeLeft: number; timeLimit: numbe
 export default function TestTake() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { ageGroup, difficulty, field, subfield, examType = "mcq" } = (location.state as any) || {};
+  const { qualification, difficulty, field, subfield, examType = "mcq", ageGroup } = (location.state as any) || {};
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -49,7 +49,7 @@ export default function TestTake() {
     const fetchQuestions = async () => {
       try {
         const { data, error } = await supabase.functions.invoke("generate-questions", {
-          body: { age: ageGroup, field, subfield, difficulty, examType },
+          body: { qualification: qualification || ageGroup, field, subfield, difficulty, examType },
         });
         if (error) throw error;
         if (data.error) throw new Error(data.error);
@@ -110,7 +110,7 @@ export default function TestTake() {
         finalAnswers[currentIndex] = textAnswer;
       }
       navigate("/test/result", {
-        state: { questions, answers: finalAnswers, timeData: finalTimeData, field, subfield, ageGroup, difficulty },
+        state: { questions, answers: finalAnswers, timeData: finalTimeData, field, subfield, ageGroup: qualification || ageGroup, difficulty },
       });
     }
   }, [currentIndex, questions, answers, timeData, textAnswer, questionStartTime]);

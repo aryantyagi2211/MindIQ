@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { getTier, getCountryFlag, FIELDS, Field } from "@/lib/constants";
+import { getTier, getCountryFlag, FIELDS, SCHOOL_FIELDS } from "@/lib/constants";
 import Header from "@/components/Header";
 import ResultCard from "@/components/ResultCard";
 import { motion, AnimatePresence } from "framer-motion";
@@ -9,6 +9,7 @@ import { Trophy, Medal, X, Eye, Users, Crown, TrendingUp, User } from "lucide-re
 import { Button } from "@/components/ui/button";
 
 type TabType = "all" | "week" | "today";
+type DisplayMode = "percentile" | "score";
 
 export default function Leaderboard() {
   const { user } = useAuth();
@@ -17,6 +18,17 @@ export default function Leaderboard() {
   const [fieldFilter, setFieldFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
+  const [displayMode, setDisplayMode] = useState<DisplayMode>("percentile");
+
+  // Listen for header score mode toggle
+  useEffect(() => {
+    const handler = (e: any) => {
+      if (e.detail?.showAsScore) setDisplayMode("score");
+      else setDisplayMode("percentile");
+    };
+    window.addEventListener("mindiq-score-mode", handler);
+    return () => window.removeEventListener("mindiq-score-mode", handler);
+  }, []);
 
   useEffect(() => {
     fetchResults();
@@ -133,8 +145,10 @@ export default function Leaderboard() {
             </div>
             <div className="rounded-xl border border-border/60 bg-card/40 backdrop-blur-sm p-4 text-center">
               <TrendingUp className="h-5 w-5 text-primary mx-auto mb-1" />
-              <p className="text-2xl font-bold text-foreground">{avgPercentile}<span className="text-sm text-muted-foreground">th</span></p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Avg Percentile</p>
+            <p className="text-2xl font-bold text-foreground">
+              {displayMode === "percentile" ? <>{avgPercentile}<span className="text-sm text-muted-foreground">th</span></> : Math.round(results.reduce((s, r) => s + r.overall_score, 0) / (totalPlayers || 1))}
+            </p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{displayMode === "percentile" ? "Avg Percentile" : "Avg Score"}</p>
             </div>
             <div className="rounded-xl border border-border/60 bg-card/40 backdrop-blur-sm p-4 text-center">
               <Crown className="h-5 w-5 text-primary mx-auto mb-1" />
@@ -156,7 +170,7 @@ export default function Leaderboard() {
               className="h-9 px-3 text-sm rounded-md border border-border bg-secondary text-foreground"
             >
               <option value="">All Fields</option>
-              {(Object.keys(FIELDS) as Field[]).map(f => (
+              {[...new Set([...Object.keys(FIELDS), ...Object.keys(SCHOOL_FIELDS)])].map(f => (
                 <option key={f} value={f}>{f}</option>
               ))}
             </select>
@@ -168,7 +182,7 @@ export default function Leaderboard() {
             <div className="grid grid-cols-[3.5rem_1fr_5rem_7rem_6rem_3.5rem] gap-2 px-4 py-3 text-[11px] text-muted-foreground font-semibold uppercase tracking-wider border-b border-border/60">
               <span>Rank</span>
               <span>Player</span>
-              <span>%ile</span>
+              <span>{displayMode === "percentile" ? "%ile" : "Score"}</span>
               <span>Tier</span>
               <span>Field</span>
               <span className="text-center">Card</span>
@@ -223,9 +237,12 @@ export default function Leaderboard() {
                       </div>
                     </span>
 
-                    {/* Percentile */}
+                    {/* Percentile or Score */}
                     <span className={`font-bold ${i === 0 ? "text-primary" : "text-foreground"}`}>
-                      {r.percentile}<span className="text-[10px] text-muted-foreground">th</span>
+                      {displayMode === "percentile" 
+                        ? <>{r.percentile}<span className="text-[10px] text-muted-foreground">th</span></>
+                        : r.overall_score
+                      }
                     </span>
 
                     {/* Tier */}

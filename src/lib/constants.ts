@@ -1,3 +1,4 @@
+// Full fields for higher education (UG, PG, Masters, PhD)
 export const FIELDS = {
   Technology: ["AI/ML", "Software", "Cybersecurity", "Robotics", "Data Science"],
   Engineering: ["Civil", "Mechanical", "Electrical", "Chemical", "Aerospace"],
@@ -8,6 +9,28 @@ export const FIELDS = {
   Law: ["Criminal", "Corporate", "International", "Human Rights"],
   Education: ["Teaching", "Psychology", "Sociology", "Philosophy"],
 } as const;
+
+// STEAM fields for school-level students
+export const SCHOOL_FIELDS = {
+  Science: ["Physics", "Biology", "Chemistry", "Environmental Science", "Earth Science"],
+  Technology: ["Coding", "Web Development", "App Development", "Digital Literacy", "Robotics"],
+  Engineering: ["Basic Engineering", "Design Thinking", "Problem Solving", "Mechanics", "Electronics"],
+  Arts: ["Visual Arts", "Music", "Creative Writing", "Drama", "Digital Art"],
+  Mathematics: ["Algebra", "Geometry", "Statistics", "Calculus", "Logic & Reasoning"],
+} as const;
+
+export const QUALIFICATIONS = [
+  "Secondary School",
+  "High School", 
+  "Undergraduate (UG)",
+  "Postgraduate (PG)",
+  "Masters",
+  "PhD",
+] as const;
+
+export type Qualification = typeof QUALIFICATIONS[number];
+
+export const isSchoolLevel = (q: string) => q === "Secondary School" || q === "High School";
 
 export const AGE_GROUPS = ["13-17", "18-24", "25-34", "35-44", "45+"] as const;
 export const DIFFICULTIES = ["Standard", "Hard", "Brutal"] as const;
