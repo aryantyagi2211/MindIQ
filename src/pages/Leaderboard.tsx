@@ -36,12 +36,22 @@ export default function Leaderboard() {
 
   const fetchResults = async () => {
     setLoading(true);
+
+    // Fetch ALL profiles
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("user_id, username, country, avatar_url");
+
+    if (!profiles) {
+      setResults([]);
+      setLoading(false);
+      return;
+    }
+
+    // Fetch test results based on filters
     let query = supabase
       .from("test_results")
-      .select("*, profiles!inner(username, country, avatar_url)")
-      .order("percentile", { ascending: false })
-      .order("overall_score", { ascending: false })
-      .limit(200);
+      .select("*");
 
     if (tab === "week") {
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -56,33 +66,59 @@ export default function Leaderboard() {
       query = query.eq("field", fieldFilter);
     }
 
-    const { data } = await query;
+    const { data: allResults } = await query;
 
-    // Deduplicate: keep only the best result per user
-    const bestByUser = new Map<string, any>();
-    (data || []).forEach((r: any) => {
-      const mapped = {
-        ...r,
-        username: r.profiles?.username,
-        country: r.profiles?.country,
-        avatar_url: r.profiles?.avatar_url,
+    // Group results by user
+    const resultsByUser = new Map<string, any[]>();
+    (allResults || []).forEach(r => {
+      const existing = resultsByUser.get(r.user_id) || [];
+      resultsByUser.set(r.user_id, [...existing, r]);
+    });
+
+    // Merge profiles with their average results
+    const leaderboardData = profiles.map(p => {
+      const userTests = resultsByUser.get(p.user_id) || [];
+      const hasPlayed = userTests.length > 0;
+      const count = userTests.length;
+
+      return {
+        user_id: p.user_id,
+        username: p.username,
+        country: p.country,
+        avatar_url: p.avatar_url,
+        overall_score: hasPlayed ? Math.round(userTests.reduce((s, r) => s + r.overall_score, 0) / count) : 0,
+        percentile: hasPlayed ? Math.round(userTests.reduce((s, r) => s + r.percentile, 0) / count) : 0,
+        logic: hasPlayed ? Math.round(userTests.reduce((s, r) => s + r.logic, 0) / count) : 0,
+        creativity: hasPlayed ? Math.round(userTests.reduce((s, r) => s + r.creativity, 0) / count) : 0,
+        intuition: hasPlayed ? Math.round(userTests.reduce((s, r) => s + r.intuition, 0) / count) : 0,
+        emotional_intelligence: hasPlayed ? Math.round(userTests.reduce((s, r) => s + r.emotional_intelligence, 0) / count) : 0,
+        systems_thinking: hasPlayed ? Math.round(userTests.reduce((s, r) => s + r.systems_thinking, 0) / count) : 0,
+        field: hasPlayed ? userTests[0].field : "N/A",
+        tests_count: count
       };
-      const existing = bestByUser.get(r.user_id);
-      if (!existing || r.percentile > existing.percentile || (r.percentile === existing.percentile && r.overall_score > existing.overall_score)) {
-        bestByUser.set(r.user_id, mapped);
-      }
     });
 
-    const sorted = Array.from(bestByUser.values()).sort((a, b) => {
-      if (b.percentile !== a.percentile) return b.percentile - a.percentile;
-      return b.overall_score - a.overall_score;
-    });
-
+    const sorted = leaderboardData.sort((a, b) => b.overall_score - a.overall_score);
     setResults(sorted);
     setLoading(false);
   };
 
-  const getRankBadge = (i: number) => {
+  const getRankBadge = (i: number, total: number) => {
+    const rank = i + 1;
+    const isTop5Percent = (rank / (total || 1)) <= 0.05;
+
+    if (isTop5Percent && total > 10) {
+      const topPct = Math.max(0.1, Math.round((rank / total) * 1000) / 10);
+      return (
+        <div className="flex flex-col items-center">
+          <div className={`w-8 h-8 rounded-full ${i === 0 ? "bg-primary/20 border-primary/40" : "bg-primary/10 border-primary/20"} border flex items-center justify-center`}>
+            {i === 0 ? <Crown className="h-4 w-4 text-primary" /> : <Trophy className="h-3 w-3 text-primary/80" />}
+          </div>
+          <span className="text-[9px] font-bold text-primary mt-1 whitespace-nowrap">Top {topPct}%</span>
+        </div>
+      );
+    }
+
     if (i === 0) return (
       <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center">
         <Crown className="h-4 w-4 text-primary" />
@@ -100,12 +136,16 @@ export default function Leaderboard() {
     );
     return (
       <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
-        <span className="text-xs font-bold text-muted-foreground">{i + 1}</span>
+        <span className="text-xs font-bold text-muted-foreground">#{rank}</span>
       </div>
     );
   };
 
-  const getRowGlow = (i: number) => {
+  const getRowGlow = (i: number, total: number) => {
+    const rank = i + 1;
+    const isTop5Percent = (rank / (total || 1)) <= 0.05 && total > 10;
+
+    if (isTop5Percent) return "bg-primary/[0.04] border-l-2 border-l-primary/60";
     if (i === 0) return "bg-primary/5 border-l-2 border-l-primary";
     if (i === 1) return "bg-muted-foreground/5 border-l-2 border-l-muted-foreground/40";
     if (i === 2) return "bg-muted-foreground/[0.03] border-l-2 border-l-muted-foreground/20";
@@ -127,8 +167,8 @@ export default function Leaderboard() {
             <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring" }}>
               <Trophy className="h-14 w-14 text-primary mx-auto drop-shadow-[0_0_25px_hsl(45_100%_51%/0.5)]" />
             </motion.div>
-            <h1 className="text-4xl md:text-5xl font-bold text-gradient-gold">Global Leaderboard</h1>
-            <p className="text-muted-foreground text-lg">Every player ranked by their best cognitive performance</p>
+            <h1 className="text-4xl md:text-5xl font-bold text-gradient-gold">Global Ranking</h1>
+            <p className="text-muted-foreground text-lg">Every player ranked by their average cognitive performance across all tests</p>
           </div>
 
           {/* Stats bar */}
@@ -145,9 +185,9 @@ export default function Leaderboard() {
             </div>
             <div className="rounded-xl border border-border/60 bg-card/40 backdrop-blur-sm p-4 text-center">
               <TrendingUp className="h-5 w-5 text-primary mx-auto mb-1" />
-            <p className="text-2xl font-bold text-foreground">
-              {displayMode === "percentile" ? <>{avgPercentile}<span className="text-sm text-muted-foreground">th</span></> : Math.round(results.reduce((s, r) => s + r.overall_score, 0) / (totalPlayers || 1))}
-            </p>
+              <p className="text-2xl font-bold text-foreground">
+                {displayMode === "percentile" ? <>{avgPercentile}<span className="text-sm text-muted-foreground">th</span></> : Math.round(results.reduce((s, r) => s + r.overall_score, 0) / (totalPlayers || 1))}
+              </p>
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{displayMode === "percentile" ? "Avg Percentile" : "Avg Score"}</p>
             </div>
             <div className="rounded-xl border border-border/60 bg-card/40 backdrop-blur-sm p-4 text-center">
@@ -179,10 +219,11 @@ export default function Leaderboard() {
           {/* Leaderboard list */}
           <div className="bg-card/50 backdrop-blur-sm border border-border/60 rounded-2xl overflow-hidden">
             {/* Header row */}
-            <div className="grid grid-cols-[3.5rem_1fr_5rem_7rem_6rem_3.5rem] gap-2 px-4 py-3 text-[11px] text-muted-foreground font-semibold uppercase tracking-wider border-b border-border/60">
+            <div className="grid grid-cols-[3.5rem_1fr_5rem_4rem_7rem_6rem_3.5rem] gap-2 px-4 py-3 text-[11px] text-muted-foreground font-semibold uppercase tracking-wider border-b border-border/60">
               <span>Rank</span>
               <span>Player</span>
-              <span>{displayMode === "percentile" ? "%ile" : "Score"}</span>
+              <span>{displayMode === "percentile" ? "Avg %" : "Avg Score"}</span>
+              <span className="text-center">Tests</span>
               <span>Tier</span>
               <span>Field</span>
               <span className="text-center">Card</span>
@@ -199,7 +240,7 @@ export default function Leaderboard() {
               <div className="p-16 text-center space-y-3">
                 <Users className="h-10 w-10 text-muted-foreground/40 mx-auto" />
                 <p className="text-lg text-muted-foreground">No players yet</p>
-                <p className="text-sm text-muted-foreground/70">Take a test to claim the #1 spot!</p>
+                <p className="text-sm text-muted-foreground/70">Take a few tests to start your average ranking!</p>
               </div>
             ) : (
               results.map((r, i) => {
@@ -207,15 +248,15 @@ export default function Leaderboard() {
                 const isMe = user && r.user_id === user.id;
                 return (
                   <motion.div
-                    key={r.id}
+                    key={r.user_id}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: Math.min(i * 0.03, 1) }}
-                    className={`grid grid-cols-[3.5rem_1fr_5rem_7rem_6rem_3.5rem] gap-2 px-4 py-3 items-center text-sm border-b border-border/30 hover:bg-primary/[0.03] transition-all cursor-pointer ${getRowGlow(i)} ${isMe ? "ring-1 ring-inset ring-primary/50 bg-primary/[0.05]" : ""}`}
+                    className={`grid grid-cols-[3.5rem_1fr_5rem_4rem_7rem_6rem_3.5rem] gap-2 px-4 py-3 items-center text-sm border-b border-border/30 hover:bg-primary/[0.03] transition-all cursor-pointer ${getRowGlow(i, results.length)} ${isMe ? "ring-1 ring-inset ring-primary/50 bg-primary/[0.05]" : ""}`}
                     onClick={() => setSelectedUser(r)}
                   >
                     {/* Rank */}
-                    <span>{getRankBadge(i)}</span>
+                    <span>{getRankBadge(i, results.length)}</span>
 
                     {/* Player */}
                     <span className="flex items-center gap-3 min-w-0">
@@ -239,18 +280,24 @@ export default function Leaderboard() {
 
                     {/* Percentile or Score */}
                     <span className={`font-bold ${i === 0 ? "text-primary" : "text-foreground"}`}>
-                      {displayMode === "percentile" 
-                        ? <>{r.percentile}<span className="text-[10px] text-muted-foreground">th</span></>
-                        : r.overall_score
+                      {displayMode === "percentile"
+                        ? <>{Math.round(r.percentile)}<span className="text-[10px] text-muted-foreground">%</span></>
+                        : Math.round(r.overall_score)
                       }
                     </span>
 
+                    {/* Tests Count */}
+                    <span className="text-center">
+                      <span className="px-1.5 py-0.5 rounded-md bg-secondary text-[10px] font-bold text-muted-foreground border border-border/40">
+                        {r.tests_count}
+                      </span>
+                    </span>
+
                     {/* Tier */}
-                    <span className={`text-xs font-medium px-2 py-1 rounded-md truncate ${
-                      tier.tier >= 6 ? "bg-primary/10 text-primary" : 
-                      tier.tier >= 4 ? "bg-secondary text-foreground" : 
-                      "text-muted-foreground"
-                    }`}>
+                    <span className={`text-xs font-medium px-2 py-1 rounded-md truncate ${tier.tier >= 6 ? "bg-primary/10 text-primary" :
+                      tier.tier >= 4 ? "bg-secondary text-foreground" :
+                        "text-muted-foreground"
+                      }`}>
                       {tier.title}
                     </span>
 
@@ -307,7 +354,15 @@ export default function Leaderboard() {
 
               {/* Rank badge on card */}
               <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10 px-3 py-1 rounded-full bg-primary text-primary-foreground text-xs font-bold shadow-lg">
-                Rank #{results.findIndex(r => r.id === selectedUser.id) + 1}
+                {(() => {
+                  const idx = results.findIndex(r => r.id === selectedUser.id);
+                  const rank = idx + 1;
+                  const total = results.length;
+                  if ((rank / total) <= 0.05 && total > 10) {
+                    return `Top ${Math.max(0.1, Math.round((rank / total) * 1000) / 10)}%`;
+                  }
+                  return `Rank #${rank}`;
+                })()}
               </div>
 
               <ResultCard
@@ -329,6 +384,8 @@ export default function Leaderboard() {
                 phase="done"
                 username={selectedUser.username}
                 avatarUrl={selectedUser.avatar_url}
+                rank={results.findIndex(r => r.id === selectedUser.id) + 1}
+                totalPlayers={results.length}
               />
             </motion.div>
           </motion.div>

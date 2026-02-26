@@ -9,31 +9,59 @@ import { Crown, Trophy, Medal } from "lucide-react";
 export default function HallOfFame() {
   const [topThree, setTopThree] = useState<any[]>([]);
 
-  useEffect(() => {
-    const fetch = async () => {
-      const { data } = await supabase
-        .from("test_results")
-        .select("*, profiles!inner(username, country, avatar_url)")
-        .order("percentile", { ascending: false })
-        .order("overall_score", { ascending: false })
-        .limit(3);
+  const [totalPlayers, setTotalPlayers] = useState(0);
 
-      setTopThree(
-        (data || []).map((r: any) => ({
-          ...r,
-          username: r.profiles?.username,
-          country: r.profiles?.country,
-          avatar_url: r.profiles?.avatar_url,
-        }))
-      );
+  useEffect(() => {
+    const fetchData = async () => {
+      // Fetch profiles and results
+      const { data: profiles } = await supabase.from("profiles").select("user_id, username, country, avatar_url");
+      const { data: results } = await supabase.from("test_results").select("*");
+
+      if (!profiles || !results) return;
+
+      const userGroups = new Map();
+      profiles.forEach(p => userGroups.set(p.user_id, { profiles: p, results: [] }));
+      results.forEach(r => {
+        if (userGroups.has(r.user_id)) {
+          userGroups.get(r.user_id).results.push(r);
+        }
+      });
+
+      const averageRankings = Array.from(userGroups.values())
+        .map(({ profiles, results }) => {
+          const count = results.length;
+          const hasPlayed = count > 0;
+          return {
+            user_id: profiles.user_id,
+            username: profiles.username,
+            country: profiles.country,
+            avatar_url: profiles.avatar_url,
+            overall_score: hasPlayed ? Math.round(results.reduce((s, r) => s + r.overall_score, 0) / count) : 0,
+            percentile: hasPlayed ? Math.round(results.reduce((s, r) => s + r.percentile, 0) / count) : 0,
+            logic: hasPlayed ? Math.round(results.reduce((s, r) => s + r.logic, 0) / count) : 0,
+            creativity: hasPlayed ? Math.round(results.reduce((s, r) => s + r.creativity, 0) / count) : 0,
+            intuition: hasPlayed ? Math.round(results.reduce((s, r) => s + r.intuition, 0) / count) : 0,
+            emotional_intelligence: hasPlayed ? Math.round(results.reduce((s, r) => s + r.emotional_intelligence, 0) / count) : 0,
+            systems_thinking: hasPlayed ? Math.round(results.reduce((s, r) => s + r.systems_thinking, 0) / count) : 0,
+            field: hasPlayed ? results[0].field : "N/A",
+            subfield: hasPlayed ? results[0].subfield : "NONE",
+            famous_match: hasPlayed ? results[0].famous_match : "None",
+            superpowers: hasPlayed ? results[0].superpowers : [],
+            blind_spots: hasPlayed ? results[0].blind_spots : []
+          };
+        })
+        .sort((a, b) => b.overall_score - a.overall_score);
+
+      setTotalPlayers(averageRankings.length);
+      setTopThree(averageRankings.slice(0, 3));
     };
-    fetch();
+    fetchData();
   }, []);
 
   const getMedalIcon = (i: number) => {
     if (i === 0) return <Crown className="h-10 w-10 text-primary drop-shadow-[0_0_15px_hsl(45_100%_51%/0.6)]" />;
-    if (i === 1) return <Medal className="h-8 w-8 text-muted-foreground" />;
-    return <Medal className="h-7 w-7 text-muted-foreground/60" />;
+    if (i === 1) return <Medal className="h-8 w-8 text-slate-300 drop-shadow-[0_0_10px_rgba(203,213,225,0.4)]" />;
+    return <Medal className="h-7 w-7 text-amber-700 drop-shadow-[0_0_10px_rgba(180,83,9,0.4)]" />;
   };
 
   const getMedalLabel = (i: number) => {
@@ -43,11 +71,11 @@ export default function HallOfFame() {
   };
 
   const getCardScale = (i: number) => {
-    if (i === 0) return "scale-105";
+    if (i === 0) return "scale-105 z-10 p-2 bg-primary/5 rounded-[2.5rem] border border-primary/20";
     return "";
   };
 
-  // Reorder: show 2nd, 1st, 3rd for podium effect
+  // Reorder for podium: [2nd, 1st, 3rd]
   const podiumOrder = topThree.length === 3 ? [topThree[1], topThree[0], topThree[2]] : topThree;
   const podiumIndexMap = topThree.length === 3 ? [1, 0, 2] : topThree.map((_, i) => i);
 
@@ -116,6 +144,8 @@ export default function HallOfFame() {
                       phase="done"
                       username={m.username}
                       avatarUrl={m.avatar_url}
+                      rank={realIndex + 1}
+                      totalPlayers={totalPlayers}
                     />
                   </motion.div>
                 );

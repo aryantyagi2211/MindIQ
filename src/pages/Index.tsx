@@ -16,6 +16,9 @@ export default function Index() {
   const [recentResults, setRecentResults] = useState<any[]>([]);
   const [userResult, setUserResult] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [averages, setAverages] = useState<any>(null);
+  const [globalRank, setGlobalRank] = useState<number | null>(null);
+  const [totalPlayers, setTotalPlayers] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -36,67 +39,99 @@ export default function Index() {
         })));
       }
 
-      // Fetch user's latest result
+      // Fetch user's neural signature (averages)
       if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("user_id", user.id)
-          .single();
+        const { data: profile } = await supabase.from("profiles").select("*").eq("user_id", user.id).single();
         if (profile) setUserProfile(profile);
 
-        const { data: result } = await supabase
-          .from("test_results")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .single();
-        if (result) setUserResult(result);
+        const { data: results } = await supabase.from("test_results").select("*").eq("user_id", user.id);
+
+        if (results && results.length > 0) {
+          const count = results.length;
+          const avg = {
+            percentile: Math.round(results.reduce((s, r) => s + r.percentile, 0) / count),
+            overall_score: Math.round(results.reduce((s, r) => s + r.overall_score, 0) / count),
+            logic: Math.round(results.reduce((s, r) => s + r.logic, 0) / count),
+            creativity: Math.round(results.reduce((s, r) => s + r.creativity, 0) / count),
+            intuition: Math.round(results.reduce((s, r) => s + r.intuition, 0) / count),
+            emotional_intelligence: Math.round(results.reduce((s, r) => s + r.emotional_intelligence, 0) / count),
+            systems_thinking: Math.round(results.reduce((s, r) => s + r.systems_thinking, 0) / count),
+            field: results[0].subfield,
+          };
+          setAverages(avg);
+        } else {
+          // Initialize with 0s for new users
+          setAverages({
+            percentile: 0, overall_score: 0, logic: 0, creativity: 0,
+            intuition: 0, emotional_intelligence: 0, systems_thinking: 0, field: "UNRANKED"
+          });
+        }
+
+        // Global Rank calculation based on averages for ALL users
+        const { data: allResults } = await supabase.from("test_results").select("user_id, overall_score");
+        const { data: allProfiles } = await supabase.from("profiles").select("user_id");
+
+        if (allProfiles) {
+          const userGroups = new Map();
+          allProfiles.forEach(p => userGroups.set(p.user_id, { sum: 0, count: 0 }));
+          (allResults || []).forEach(row => {
+            const existing = userGroups.get(row.user_id) || { sum: 0, count: 0 };
+            userGroups.set(row.user_id, { sum: existing.sum + row.overall_score, count: existing.count + 1 });
+          });
+          const allAverages = Array.from(userGroups.values()).map(g => g.count > 0 ? g.sum / g.count : 0).sort((a, b) => b - a);
+          setTotalPlayers(allAverages.length);
+          const currentScore = (averages?.overall_score || 0);
+          const rank = allAverages.findIndex(s => s <= currentScore) + 1;
+          setGlobalRank(rank);
+        }
       }
     };
     fetchData();
   }, [user]);
 
-  // Build card data - real or fake
-  const cardData = userResult
+  // Build card data - Average Neural Signature or Demo
+  const cardData = averages
     ? {
-      percentile: userResult.percentile,
+      percentile: averages.percentile,
       scores: {
-        logic: userResult.logic,
-        creativity: userResult.creativity,
-        intuition: userResult.intuition,
-        emotionalIntelligence: userResult.emotional_intelligence,
-        systemsThinking: userResult.systems_thinking,
-        overallScore: userResult.overall_score,
-        famousMatch: userResult.famous_match || "",
-        famousMatchReason: userResult.famous_match_reason || "",
-        superpowers: userResult.superpowers || [],
-        blindSpots: userResult.blind_spots || [],
-        aiInsight: userResult.ai_insight || "",
-      },
-      username: userProfile?.username || "You",
-      avatarUrl: userProfile?.avatar_url,
-      field: userResult.subfield,
-    }
-    : {
-      percentile: 94,
-      scores: {
-        logic: 88,
-        creativity: 92,
-        intuition: 76,
-        emotionalIntelligence: 85,
-        systemsThinking: 90,
-        overallScore: 86,
-        famousMatch: "Alan Turing",
+        logic: averages.logic,
+        creativity: averages.creativity,
+        intuition: averages.intuition,
+        emotionalIntelligence: averages.emotional_intelligence,
+        systemsThinking: averages.systems_thinking,
+        overallScore: averages.overall_score,
+        famousMatch: "Synchronizing...",
         famousMatchReason: "",
         superpowers: [],
         blindSpots: [],
         aiInsight: "",
       },
-      username: "Your Name Here",
+      username: userProfile?.username || "You",
+      avatarUrl: userProfile?.avatar_url,
+      field: averages.field,
+      rank: globalRank,
+      totalPlayers: totalPlayers,
+    }
+    : {
+      percentile: 98,
+      scores: {
+        logic: 95,
+        creativity: 91,
+        intuition: 88,
+        emotionalIntelligence: 94,
+        systemsThinking: 92,
+        overallScore: 93,
+        famousMatch: "Nikola Tesla",
+        famousMatchReason: "",
+        superpowers: [],
+        blindSpots: [],
+        aiInsight: "",
+      },
+      username: "Elite Mind Demo",
       avatarUrl: null,
-      field: "AI/ML",
+      field: "Quantum Logic",
+      rank: 3,
+      totalPlayers: 12500,
     };
 
   const tier = getTier(cardData.percentile);
@@ -290,6 +325,8 @@ export default function Index() {
                 phase="done"
                 username={cardData.username}
                 avatarUrl={cardData.avatarUrl}
+                rank={cardData.rank}
+                totalPlayers={cardData.totalPlayers}
               />
               {!userResult && (
                 <motion.div

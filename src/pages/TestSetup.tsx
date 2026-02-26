@@ -46,10 +46,12 @@ export default function TestSetup() {
   };
 
   return (
-    <div className="min-h-screen bg-[#010101] text-white relative overflow-hidden font-sans select-none">
+    <div className="min-h-screen bg-transparent text-white relative overflow-hidden font-sans select-none">
       {/* EXTREME FUTURISTIC BACKGROUND */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute inset-0 bg-[#000000]" />
+        <div className="absolute inset-0 bg-[#000000]/60 backdrop-blur-[2px]" />
+
+        {/* Continuous Dynamic Atmospheric Glows */}
         <motion.div
           animate={{ opacity: [0.15, 0.4, 0.15], x: [-40, 40, -40], y: [-40, 40, -40] }}
           transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
@@ -61,37 +63,8 @@ export default function TestSetup() {
           className="absolute bottom-[-20%] right-[-20%] w-[100%] h-[100%] bg-yellow-600/10 blur-[220px] rounded-full"
         />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(255,191,0,0.04)_0%,transparent_80%)]" />
-
-        <svg className="absolute inset-0 w-full h-full opacity-60 mix-blend-screen" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid slice">
-          <defs>
-            <filter id="glow-master">
-              <feGaussianBlur stdDeviation="6" result="coloredBlur" />
-              <feMerge><feMergeNode in="coloredBlur" /><feMergeNode in="SourceGraphic" /></feMerge>
-            </filter>
-          </defs>
-          {[180, 330, 500, 670, 820].map((y, i) => {
-            const zig = i % 2 === 0 ? 60 : -60;
-            const leftPath = `M 0 ${y} H 140 L 200 ${y + zig} H 340 L 400 ${y} H 480`;
-            const rightPath = `M 1000 ${y} H 860 L 800 ${y - zig} H 660 L 600 ${y} H 520`;
-            return (
-              <g key={y}>
-                <path d={leftPath} stroke="#FFD700" strokeWidth="0.4" fill="none" opacity="0.1" />
-                <path d={rightPath} stroke="#FFD700" strokeWidth="0.4" fill="none" opacity="0.1" />
-                <motion.path d={leftPath} stroke="#FFD700" strokeWidth="1.2" fill="none" filter="url(#glow-master)"
-                  initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: [0, 1, 1], opacity: [0, 1, 0] }}
-                  transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.6, times: [0, 0.15, 1], repeatDelay: 1 + Math.random() }}
-                />
-              </g>
-            );
-          })}
-          {[...Array(15)].map((_, i) => (
-            <motion.circle key={i} cx={Math.random() * 1000} cy={Math.random() * 1000} r={Math.random() * 1.2} fill="#FFD700"
-              animate={{ opacity: [0, 0.5, 0], scale: [0.4, 1.1, 0.4], y: [0, -100] }}
-              transition={{ duration: Math.random() * 8 + 6, repeat: Infinity, delay: Math.random() * 10 }}
-            />
-          ))}
-        </svg>
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 mix-blend-overlay" />
+        {/* High-Contrast Stardust Layer */}
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30 mix-blend-overlay" />
       </div>
 
       <Header />
@@ -138,7 +111,7 @@ export default function TestSetup() {
                         className={`px-3 py-1.5 rounded-xl text-[10px] font-bold border transition-all duration-300 ${qualification === q
                           ? "border-yellow-500 bg-yellow-500 text-black shadow-[0_0_20px_rgba(255,191,0,0.5)]"
                           : "border-white/5 bg-white/5 text-white/20 hover:border-white/20 hover:text-white/80"
-                        }`}
+                          }`}
                       >
                         {q}
                       </button>
@@ -159,7 +132,7 @@ export default function TestSetup() {
                         className={`px-3 py-1.5 rounded-xl text-[10px] font-bold border transition-all duration-300 ${difficulty === d
                           ? "border-yellow-500 bg-yellow-500 text-black shadow-[0_0_20px_rgba(255,191,0,0.5)]"
                           : "border-white/5 bg-white/5 text-white/20 hover:border-white/20 hover:text-white/80"
-                        }`}
+                          }`}
                       >
                         {d}
                       </button>
@@ -181,7 +154,7 @@ export default function TestSetup() {
                         className={`px-3 py-1.5 rounded-xl text-[10px] font-bold border transition-all duration-300 ${field === f
                           ? "border-yellow-500 bg-yellow-500 text-black shadow-[0_0_20px_rgba(255,191,0,0.5)]"
                           : "border-white/5 bg-white/5 text-white/20 hover:border-white/20 hover:text-white/80"
-                        }`}
+                          }`}
                       >
                         {f}
                       </button>
@@ -212,7 +185,7 @@ export default function TestSetup() {
                             className={`px-3 py-1.5 rounded-lg text-[9px] font-bold border transition-all duration-300 ${subfield === s
                               ? "border-yellow-500 bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
                               : "border-white/5 bg-white/5 text-white/20 hover:border-white/20 hover:text-white/70"
-                            }`}
+                              }`}
                           >
                             {s}
                           </button>
@@ -240,7 +213,7 @@ export default function TestSetup() {
                           className={`flex items-center gap-3 p-3 rounded-xl border transition-all duration-300 ${isActive
                             ? "border-yellow-500/30 bg-yellow-500/5"
                             : "border-white/5 bg-white/5 hover:border-white/10"
-                          }`}
+                            }`}
                         >
                           <div className={`p-2 rounded-lg ${isActive ? "bg-yellow-500/20" : "bg-white/5"}`}>
                             <Icon className={`h-4 w-4 ${isActive ? "text-yellow-500" : "text-white/20"}`} />
@@ -266,7 +239,7 @@ export default function TestSetup() {
               className={`w-full group relative py-5 rounded-2xl text-xl font-black italic tracking-tighter transition-all duration-500 transform hover:scale-[1.02] active:scale-[0.98] ${canStart
                 ? "bg-yellow-500 text-black shadow-[0_0_120px_rgba(255,191,0,0.6)]"
                 : "bg-white/5 text-white/5 cursor-not-allowed border border-white/5"
-              }`}
+                }`}
             >
               <div className="flex items-center justify-center gap-3">
                 {canStart ? (

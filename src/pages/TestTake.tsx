@@ -178,11 +178,10 @@ export default function TestTake() {
                   <button
                     key={i}
                     onClick={() => handleMCQAnswer(opt)}
-                    className={`w-full text-left p-4 rounded-lg border transition-all duration-200 ${
-                      answers[currentIndex] === opt
+                    className={`w-full text-left p-4 rounded-lg border transition-all duration-200 ${answers[currentIndex] === opt
                         ? "border-primary bg-primary/10 text-foreground"
                         : "border-border bg-secondary/30 text-foreground hover:border-primary/50 hover:bg-secondary/50"
-                    }`}
+                      }`}
                   >
                     {opt}
                   </button>

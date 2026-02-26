@@ -1,7 +1,7 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Brain, LogOut, User, Trophy, Hash, Percent } from "lucide-react";
+import { Brain, LogOut, User, Trophy, Hash, Percent, Home, Activity } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -10,6 +10,15 @@ export default function Header() {
   const navigate = useNavigate();
   const [showAsScore, setShowAsScore] = useState(false);
   const [isTopPerformer, setIsTopPerformer] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -26,20 +35,53 @@ export default function Header() {
   }, [showAsScore]);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
+    <header className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-300 ${isScrolled
+        ? "bg-background/80 backdrop-blur-xl border-b border-white/5 shadow-lg"
+        : "bg-transparent border-b border-transparent"
+      }`}>
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
           <Brain className="h-7 w-7 text-primary" />
           <span className="text-xl font-bold text-gradient-gold">MindIQ</span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-6">
-          <Link to="/leaderboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-            <Trophy className="inline h-4 w-4 mr-1" />Leaderboard
-          </Link>
-          <Link to="/hall-of-fame" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+        <nav className="hidden md:flex items-center gap-8 h-full">
+          <NavLink
+            to="/"
+            className={({ isActive }) => `
+              text-sm font-medium transition-all flex items-center h-16 border-b-2 
+              ${isActive ? "text-primary border-primary" : "text-muted-foreground border-transparent hover:text-foreground"}
+            `}
+          >
+            <Home className="inline h-4 w-4 mr-1.5" />Home
+          </NavLink>
+          <NavLink
+            to="/test/setup"
+            className={({ isActive }) => `
+              text-sm font-medium transition-all flex items-center h-16 border-b-2 
+              ${isActive ? "text-primary border-primary" : "text-muted-foreground border-transparent hover:text-foreground"}
+            `}
+          >
+            <Activity className="inline h-4 w-4 mr-1.5" />Assessment
+          </NavLink>
+          <NavLink
+            to="/leaderboard"
+            className={({ isActive }) => `
+              text-sm font-medium transition-all flex items-center h-16 border-b-2 
+              ${isActive ? "text-primary border-primary" : "text-muted-foreground border-transparent hover:text-foreground"}
+            `}
+          >
+            <Trophy className="inline h-4 w-4 mr-1.5" />Leaderboard
+          </NavLink>
+          <NavLink
+            to="/hall-of-fame"
+            className={({ isActive }) => `
+              text-sm font-medium transition-all flex items-center h-16 border-b-2 
+              ${isActive ? "text-primary border-primary" : "text-muted-foreground border-transparent hover:text-foreground"}
+            `}
+          >
             Hall of Fame
-          </Link>
+          </NavLink>
           {isTopPerformer && (
             <button
               onClick={() => setShowAsScore(prev => !prev)}
@@ -52,18 +94,33 @@ export default function Header() {
           )}
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-6 h-full">
           {user ? (
             <>
-              <Button variant="ghost" size="sm" onClick={() => navigate("/profile")}>
-                <User className="h-4 w-4 mr-1" /> Profile
-              </Button>
-              <Button variant="ghost" size="sm" onClick={signOut}>
+              <NavLink
+                to="/profile"
+                className={({ isActive }) => `
+                  text-sm font-medium transition-all flex items-center h-16 border-b-2 
+                  ${isActive ? "text-primary border-primary" : "text-muted-foreground border-transparent hover:text-foreground"}
+                `}
+              >
+                <User className="h-4 w-4 mr-1.5" /> Profile
+              </NavLink>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={signOut}
+                className="hover:bg-transparent hover:text-foreground p-0"
+              >
                 <LogOut className="h-4 w-4" />
               </Button>
             </>
           ) : (
-            <Button size="sm" onClick={() => navigate("/auth")}>
+            <Button
+              size="sm"
+              onClick={() => navigate("/auth")}
+              className="bg-primary/10 border border-primary/30 text-primary hover:bg-primary hover:text-black transition-all"
+            >
               Sign In
             </Button>
           )}

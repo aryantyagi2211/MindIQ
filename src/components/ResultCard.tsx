@@ -21,6 +21,8 @@ interface ResultCardProps {
   phase: string;
   username?: string;
   avatarUrl?: string | null;
+  rank?: number;
+  totalPlayers?: number;
   stats?: {
     totalQuestions: number;
     attempted: number;
@@ -57,7 +59,7 @@ function DimensionBar({ label, value, delay }: { label: string; value: number; d
   );
 }
 
-export default function ResultCard({ percentile, tier, scores, field, phase, username, avatarUrl, stats }: ResultCardProps) {
+export default function ResultCard({ percentile, tier, scores, field, phase, username, avatarUrl, rank, totalPlayers, stats }: ResultCardProps) {
   const dimensions = [
     { label: "LOGIC", value: scores.logic },
     { label: "CREATIVE", value: scores.creativity },
@@ -65,6 +67,9 @@ export default function ResultCard({ percentile, tier, scores, field, phase, use
     { label: "EQ", value: scores.emotionalIntelligence },
     { label: "SYSTEMS", value: scores.systemsThinking },
   ];
+
+  const isExalted = rank && totalPlayers && totalPlayers > 10 && (rank / totalPlayers) <= 0.05;
+  const displayRank = isExalted ? `TOP ${(Math.max(0.1, Math.round((rank / totalPlayers) * 1000) / 10))}%` : `RANK #${rank || "?"}`;
 
   return (
     <div className="relative w-full max-w-[690px] rounded-[2rem] p-0 overflow-hidden group shadow-[0_0_80px_rgba(0,0,0,0.9)] scale-[0.95] origin-top lg:scale-100 mx-auto transition-all duration-500">
@@ -113,19 +118,27 @@ export default function ResultCard({ percentile, tier, scores, field, phase, use
         {/* Main Stat: Percentile section */}
         <div className="flex flex-col items-center mb-5 relative z-20 w-full">
           <div className="relative">
-            <h2 className="text-7xl font-black text-yellow-500 bg-clip-text text-transparent bg-gradient-to-b from-[#fcf6ba] via-[#bf953f] to-[#aa771c] italic tracking-tighter mb-0 leading-none">
-              {percentile}<span className="text-3xl not-italic ml-1">th</span>
+            <h2 className="text-6xl font-black text-yellow-500 bg-clip-text text-transparent bg-gradient-to-b from-[#fcf6ba] via-[#bf953f] to-[#aa771c] italic tracking-tighter mb-0 leading-none">
+              {isExalted ? (
+                <>{Math.max(0.1, Math.round((rank / totalPlayers) * 1000) / 10)}<span className="text-2xl not-italic ml-1">%</span></>
+              ) : (
+                <>{percentile}<span className="text-2xl not-italic ml-1">th</span></>
+              )}
             </h2>
             <div className="absolute -inset-4 bg-yellow-500/10 blur-2xl rounded-full -z-10" />
           </div>
 
           <div className="flex items-center gap-6 w-full max-w-sm mt-1 mb-3">
             <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-            <span className="text-[10px] font-bold uppercase tracking-[0.5em] text-white/40 pl-[0.5em]">PERCENTILE</span>
+            <span className="text-[10px] font-bold uppercase tracking-[0.5em] text-white/40 pl-[0.5em]">
+              {isExalted ? "TOP %" : "PERCENTILE"}
+            </span>
             <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
           </div>
 
-          <p className="text-lg font-black text-white italic tracking-widest mb-0.5 uppercase leading-none">TOP {100 - percentile}% OF MINDS</p>
+          <p className="text-lg font-black text-white italic tracking-widest mb-0.5 uppercase leading-none">
+            {isExalted ? `TOP MIND` : `${rank ? `RANKED #${rank}` : `TOP ${100 - percentile}% OF MINDS`}`}
+          </p>
           <p className="text-[11px] font-medium text-white/30 uppercase tracking-[0.2em]">Cognitive Evaluation Complete</p>
         </div>
 

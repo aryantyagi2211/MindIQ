@@ -9,6 +9,7 @@ import ResultCard from "@/components/ResultCard";
 import { Button } from "@/components/ui/button";
 import { Share2, Download, Swords, Loader2, BarChart3 } from "lucide-react";
 import { toPng } from "html-to-image";
+import Header from "@/components/Header";
 
 export default function TestResult() {
   const location = useLocation();
@@ -19,6 +20,8 @@ export default function TestResult() {
   const [scores, setScores] = useState<any>(null);
   const [percentile, setPercentile] = useState(0);
   const [displayPercentile, setDisplayPercentile] = useState(0);
+  const [rank, setRank] = useState(0);
+  const [totalPlayers, setTotalPlayers] = useState(0);
   const [phase, setPhase] = useState<"black" | "text" | "reveal" | "done">("black");
   const [resultId, setResultId] = useState<string | null>(null);
   const [username, setUsername] = useState("You");
@@ -63,10 +66,15 @@ export default function TestResult() {
       if (typeof data.correctCount === "number") setCorrectCount(data.correctCount);
 
       const { count: totalCount } = await supabase.from("test_results").select("*", { count: "exact", head: true });
-      const { count: lowerCount } = await supabase.from("test_results").select("*", { count: "exact", head: true }).lt("overall_score", s.overallScore);
-      
+      const { count: higherCount } = await supabase.from("test_results").select("*", { count: "exact", head: true }).gt("overall_score", s.overallScore);
+
       const total = (totalCount || 0) + 1;
-      const lower = lowerCount || 0;
+      const rankPos = (higherCount || 0) + 1;
+      const lower = total - rankPos;
+
+      setTotalPlayers(total);
+      setRank(rankPos);
+
       const pct = Math.min(99, Math.max(1, Math.round((lower / total) * 100)));
       setPercentile(pct);
 
@@ -186,6 +194,7 @@ export default function TestResult() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 gap-6">
+      <Header />
       <motion.div
         initial={{ scale: 0.5, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -200,6 +209,8 @@ export default function TestResult() {
           phase={phase}
           username={username}
           avatarUrl={avatarUrl}
+          rank={rank}
+          totalPlayers={totalPlayers}
           stats={{
             totalQuestions,
             attempted,
