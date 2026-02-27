@@ -93,6 +93,7 @@ export type Database = {
         Row: {
           age_group: string
           ai_insight: string | null
+          archetype_report: string | null
           blind_spots: string[] | null
           created_at: string
           creativity: number
@@ -116,6 +117,7 @@ export type Database = {
         Insert: {
           age_group: string
           ai_insight?: string | null
+          archetype_report?: string | null
           blind_spots?: string[] | null
           created_at?: string
           creativity?: number
@@ -139,6 +141,7 @@ export type Database = {
         Update: {
           age_group?: string
           ai_insight?: string | null
+          archetype_report?: string | null
           blind_spots?: string[] | null
           created_at?: string
           creativity?: number
@@ -166,7 +169,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_global_rank: { Args: { target_user_id: string }; Returns: Json }
     }
     Enums: {
       [_ in never]: never
