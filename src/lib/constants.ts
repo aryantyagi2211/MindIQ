@@ -21,7 +21,7 @@ export const SCHOOL_FIELDS = {
 
 export const QUALIFICATIONS = [
   "Secondary School",
-  "High School", 
+  "High School",
   "Undergraduate (UG)",
   "Postgraduate (PG)",
   "Masters",
@@ -98,6 +98,15 @@ export const TIERS = [
 
 export function getTier(percentile: number) {
   return TIERS.find(t => percentile >= t.min && percentile <= t.max) || TIERS[0];
+}
+
+export function getTierTitle(score: number) {
+  if (score >= 95) return "Mastermind";
+  if (score >= 85) return "Supermind";
+  if (score >= 70) return "Diamond";
+  if (score >= 50) return "Gold";
+  if (score >= 30) return "Silver";
+  return "Bronze";
 }
 
 export function getCountryFlag(country: string): string {

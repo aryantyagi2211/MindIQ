@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { Brain, Zap, TrendingUp, Trophy } from "lucide-react";
+import { getTierTitle } from "@/lib/constants";
 
 interface FeedItem {
     id: string;
@@ -12,15 +13,6 @@ interface FeedItem {
     tier: string;
     timestamp: string;
 }
-
-const getTierFromScore = (score: number) => {
-    if (score >= 95) return "Mastermind";
-    if (score >= 85) return "Supermind";
-    if (score >= 70) return "Diamond";
-    if (score >= 50) return "Gold";
-    if (score >= 30) return "Silver";
-    return "Bronze";
-};
 
 export default function GlobalFeed() {
     const [feed, setFeed] = useState<FeedItem[]>([]);
@@ -48,7 +40,7 @@ export default function GlobalFeed() {
                     field: d.field,
                     subfield: d.subfield,
                     overall_score: d.overall_score,
-                    tier: getTierFromScore(d.overall_score),
+                    tier: getTierTitle(d.overall_score),
                     timestamp: d.created_at,
                 }));
                 setFeed(items);
@@ -77,7 +69,7 @@ export default function GlobalFeed() {
                         field: payload.new.field,
                         subfield: payload.new.subfield,
                         overall_score: payload.new.overall_score,
-                        tier: getTierFromScore(payload.new.overall_score),
+                        tier: getTierTitle(payload.new.overall_score),
                         timestamp: payload.new.created_at,
                     };
 

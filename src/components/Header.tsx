@@ -12,6 +12,7 @@ export default function Header() {
   const [isTopPerformer, setIsTopPerformer] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [pendingChallenges, setPendingChallenges] = useState(0);
+  const [challengersOnline, setChallengersOnline] = useState(0);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -60,6 +61,20 @@ export default function Header() {
     };
   }, [user]);
 
+  useEffect(() => {
+    const fetchOnlineCount = async () => {
+      const { count } = await supabase
+        .from("challenges")
+        .select("*", { count: "exact", head: true })
+        .is("challenged_user_id", null);
+      setChallengersOnline(count || 0);
+    };
+
+    fetchOnlineCount();
+    const interval = setInterval(fetchOnlineCount, 30000); // Update every 30s
+    return () => clearInterval(interval);
+  }, []);
+
   // Expose toggle state globally for other components
   useEffect(() => {
     window.dispatchEvent(new CustomEvent("mindiq-score-mode", { detail: { showAsScore } }));
@@ -73,7 +88,12 @@ export default function Header() {
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
           <Brain className="h-7 w-7 text-primary" />
-          <span className="text-xl font-bold text-gradient-gold">MindIQ</span>
+          <div className="flex flex-col">
+            <span className="text-xl font-bold text-gradient-gold leading-none">MindIQ</span>
+            <span className="text-[8px] font-black text-yellow-500/40 uppercase tracking-[0.2em] mt-0.5">
+              {challengersOnline} Challengers Online
+            </span>
+          </div>
         </Link>
 
         <nav className="hidden md:flex items-center gap-8 h-full">
