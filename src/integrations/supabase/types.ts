@@ -65,6 +65,11 @@ export type Database = {
           country: string | null
           created_at: string
           id: string
+          instagram_url: string | null
+          linkedin_url: string | null
+          onboarding_complete: boolean
+          tiktok_url: string | null
+          twitter_url: string | null
           updated_at: string
           user_id: string
           username: string
@@ -74,6 +79,11 @@ export type Database = {
           country?: string | null
           created_at?: string
           id?: string
+          instagram_url?: string | null
+          linkedin_url?: string | null
+          onboarding_complete?: boolean
+          tiktok_url?: string | null
+          twitter_url?: string | null
           updated_at?: string
           user_id: string
           username: string
@@ -83,6 +93,11 @@ export type Database = {
           country?: string | null
           created_at?: string
           id?: string
+          instagram_url?: string | null
+          linkedin_url?: string | null
+          onboarding_complete?: boolean
+          tiktok_url?: string | null
+          twitter_url?: string | null
           updated_at?: string
           user_id?: string
           username?: string

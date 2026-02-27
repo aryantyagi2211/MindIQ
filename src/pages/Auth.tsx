@@ -24,7 +24,9 @@ export default function AuthPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Welcome back!");
-        navigate("/");
+        // Check if onboarding is complete
+        const { data: profile } = await supabase.from("profiles").select("onboarding_complete").eq("user_id", (await supabase.auth.getUser()).data.user?.id).single();
+        navigate(profile?.onboarding_complete ? "/" : "/onboarding");
       } else {
         const { error } = await supabase.auth.signUp({
           email,
@@ -36,6 +38,7 @@ export default function AuthPage() {
         });
         if (error) throw error;
         toast.success("Check your email to verify your account!");
+        navigate("/onboarding");
       }
     } catch (err: any) {
       toast.error(err.message);
