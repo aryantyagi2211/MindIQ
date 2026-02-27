@@ -186,10 +186,6 @@ export default function Index() {
               <h1 className="text-3xl md:text-5xl lg:text-6xl font-black leading-[1] tracking-tighter uppercase italic text-white">
                 Discover Where <span className="text-yellow-500">Your Mind</span> Ranks
               </h1>
-              <p className="text-lg text-white/40 max-w-lg font-medium leading-relaxed">
-                15 neural-generated sequences. Unique every cycle. Scored across 5 cognitive dimensions.
-                Find your frequency among the global intelligence grid.
-              </p>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
