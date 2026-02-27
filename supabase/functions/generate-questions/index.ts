@@ -15,14 +15,13 @@ serve(async (req) => {
 
     const qual = qualification || age || "Undergraduate";
 
-    // Determine format instruction based on examType
     let formatInstruction = "";
     if (examType === "mcq") {
-      formatInstruction = "ALL 15 questions MUST be MCQ format with exactly 4 options (A, B, C, D) and one correct answer. Do NOT include any text/open-ended questions.";
+      formatInstruction = "FORCE MCQ ONLY: Every single question MUST be MCQ format ('format': 'mcq') with 4 options and a correctAnswer. ABSOLUTELY NO open-ended text questions.";
     } else if (examType === "qa") {
-      formatInstruction = "ALL 15 questions MUST be open-ended text format (format: 'text'). Do NOT include any MCQ questions. No options needed.";
+      formatInstruction = "FORCE Q&A ONLY: Every single question MUST be open-ended format ('format': 'text'). ABSOLUTELY NO MCQ options or correctAnswers. The user will type their response.";
     } else {
-      formatInstruction = "Mix question formats — some MCQ (4 options, one correct), some open text Q&A.";
+      formatInstruction = "MIXED MODE: Provide a balance of MCQ and open-ended text formats.";
     }
 
     // Random seed to ensure unique questions every time
@@ -30,29 +29,28 @@ serve(async (req) => {
 
     const prompt = `[AGENTIC ROLE: THE ARCHITECT]
 You are a high-level cognitive architect responsible for generating and validating specialized assessment content.
-Your goal is to cross-check every question for scientific accuracy and eliminate any hallucinations or generic 'pop-psych' fluff.
+Your goal is to cross-check every question for scientific accuracy and eliminate any hallucinations.
+
+CRITICAL FORMAT REQUIREMENT: ${formatInstruction}
 
 CONTEXT:
 Qualification Level: ${qual}
-Academic/Professional Field: ${field}
-Specialization (Subfield): ${subfield}
-Neural Complexity (Difficulty): ${difficulty}
-Random Seed: ${seed}
+Field: ${field}
+Subfield: ${subfield}
+Difficulty: ${difficulty}
+Seed: ${seed}
 
 TASKS:
-1. Generate 15 unique, high-fidelity questions tailored exactly to the subfield logic.
-2. Ensure specific distribution: 3 questions each for Pattern Recognition, Logical Deduction, Creative Divergence, Ethical Reasoning, and Systems Thinking.
-3. [FORMAT RULE]: ${formatInstruction}
+1. Generate 15 unique questions specifically for the ${subfield} specialization.
+2. Distribution: 3 questions each for Pattern Recognition, Logical Deduction, Creative Divergence, Ethical Reasoning, and Systems Thinking.
 
 SPECIFICATIONS:
-- Secondary/High School: Foundational scenarios, intuitive logic.
-- Undergraduate: Theoretical applications, interdisciplinary links.
-- Masters/PhD: Research-level depth, analytical modeling, specialized subfield nuances (e.g., if Robotics, use Kinematics/AI logic).
-
-CRITICAL: Do not repeat standard IQ questions. Create fresh, world-class scenarios. Ensure zero scientific errors.
+- High School: Foundational scenarios.
+- Undergraduate: Applied theory.
+- Masters/PhD: Research-level depth.
 
 Return ONLY valid JSON array:
-[{"id": number, "type": string, "question": string, "format": "mcq" or "text", "options": ["A)..","B)..","C)..","D).."] (if mcq), "correctAnswer": string (if mcq), "timeLimit": number, "maxPoints": number}]`;
+[{"id": number, "type": string, "question": string, "format": "mcq" | "text", "options": ["A)..","B)..","C)..","D).."] (IF AND ONLY IF mcq), "correctAnswer": string (IF AND ONLY IF mcq), "timeLimit": number, "maxPoints": number}]`;
 
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
@@ -63,10 +61,10 @@ Return ONLY valid JSON array:
       body: JSON.stringify({
         model: "llama-3.3-70b-versatile",
         messages: [
-          { role: "system", content: "You are The Architect, an agentic evaluator of cognitive questions. You are precise, scientific, and thorough." },
+          { role: "system", content: "You are The Architect. You follow format instructions with 100% strictness. If the user asks for MCQ, you NEVER provide text questions. If the user asks for Q&A, you NEVER provide MCQ." },
           { role: "user", content: prompt }
         ],
-        temperature: 0.9,
+        temperature: 0.8,
         max_tokens: 4000,
       }),
     });
