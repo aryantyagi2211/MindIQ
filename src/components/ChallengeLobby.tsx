@@ -15,17 +15,10 @@ interface Challenge {
     test_results: { field: string; subfield: string; overall_score: number };
 }
 
-const DEMO_CHALLENGES: Challenge[] = [
-    { id: "demo-c1", challenger_id: "x1", challenge_code: "a3f9c2", created_at: new Date().toISOString(), profiles: { username: "NeuroVex", avatar_url: null }, test_results: { field: "Engineering", subfield: "Electrical", overall_score: 92 } },
-    { id: "demo-c2", challenger_id: "x2", challenge_code: "b7e4d1", created_at: new Date().toISOString(), profiles: { username: "QuantumLeap", avatar_url: null }, test_results: { field: "Science", subfield: "Physics", overall_score: 87 } },
-    { id: "demo-c3", challenger_id: "x3", challenge_code: "c1a8f5", created_at: new Date().toISOString(), profiles: { username: "SynapticWolf", avatar_url: null }, test_results: { field: "Business", subfield: "Marketing", overall_score: 74 } },
-    { id: "demo-c4", challenger_id: "x4", challenge_code: "d2b6e0", created_at: new Date().toISOString(), profiles: { username: "CortexPrime", avatar_url: null }, test_results: { field: "Arts", subfield: "Music Theory", overall_score: 55 } },
-];
-
 export default function ChallengeLobby() {
     const { user } = useAuth();
     const navigate = useNavigate();
-    const [challenges, setChallenges] = useState<Challenge[]>(DEMO_CHALLENGES);
+    const [challenges, setChallenges] = useState<Challenge[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -46,10 +39,9 @@ export default function ChallengeLobby() {
                 .order("created_at", { ascending: false })
                 .limit(10);
 
-            if (!error && data && data.length > 0) {
+            if (!error && data) {
                 setChallenges(data as any);
             }
-            // If fetch fails or empty, keep demo data
             setLoading(false);
         };
 
