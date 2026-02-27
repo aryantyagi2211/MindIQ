@@ -1,3 +1,4 @@
+// @ts-ignore: Deno URL import
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -5,12 +6,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
+serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const { questions, answers, timeData, field, subfield } = await req.json();
-    const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
+    const GROQ_API_KEY = (globalThis as any).Deno.env.get("GROQ_API_KEY");
     if (!GROQ_API_KEY) throw new Error("GROQ_API_KEY not configured");
 
     const qaPairs = questions.map((q: any, i: number) => ({
@@ -91,7 +92,7 @@ Return ONLY valid JSON:
     return new Response(JSON.stringify({ scores }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (e) {
+  } catch (e: any) {
     console.error("score-answers error:", e);
     return new Response(JSON.stringify({ error: e.message }), {
       status: 500,
