@@ -14,11 +14,18 @@ interface FeedItem {
     timestamp: string;
 }
 
+const DEMO_FEED: FeedItem[] = [
+    { id: "demo-1", username: "NeuroVex", field: "Engineering", subfield: "Electrical", overall_score: 92, tier: "Mastermind", timestamp: new Date().toISOString() },
+    { id: "demo-2", username: "QuantumLeap", field: "Science", subfield: "Physics", overall_score: 87, tier: "Supermind", timestamp: new Date().toISOString() },
+    { id: "demo-3", username: "SynapticWolf", field: "Business", subfield: "Marketing", overall_score: 74, tier: "Diamond", timestamp: new Date().toISOString() },
+    { id: "demo-4", username: "CortexPrime", field: "Arts", subfield: "Music Theory", overall_score: 55, tier: "Gold", timestamp: new Date().toISOString() },
+    { id: "demo-5", username: "MindForge99", field: "Engineering", subfield: "Civil", overall_score: 41, tier: "Silver", timestamp: new Date().toISOString() },
+];
+
 export default function GlobalFeed() {
-    const [feed, setFeed] = useState<FeedItem[]>([]);
+    const [feed, setFeed] = useState<FeedItem[]>(DEMO_FEED);
 
     useEffect(() => {
-        // 1. Fetch initial recent results
         const fetchRecent = async () => {
             const { data, error } = await supabase
                 .from("test_results")
@@ -33,7 +40,7 @@ export default function GlobalFeed() {
                 .order("created_at", { ascending: false })
                 .limit(5);
 
-            if (data) {
+            if (data && data.length > 0) {
                 const items = data.map((d: any) => ({
                     id: d.id,
                     username: d.profiles?.username || "Anonymous",
@@ -45,6 +52,7 @@ export default function GlobalFeed() {
                 }));
                 setFeed(items);
             }
+            // If fetch fails or empty, keep demo data
         };
 
         fetchRecent();
