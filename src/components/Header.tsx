@@ -36,8 +36,8 @@ export default function Header() {
 
   return (
     <header className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-300 ${isScrolled
-        ? "bg-background/80 backdrop-blur-xl border-b border-white/5 shadow-lg"
-        : "bg-transparent border-b border-transparent"
+      ? "bg-background/80 backdrop-blur-xl border-b border-white/5 shadow-lg"
+      : "bg-transparent border-b border-transparent"
       }`}>
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
@@ -106,14 +106,13 @@ export default function Header() {
               >
                 <User className="h-4 w-4 mr-1.5" /> Profile
               </NavLink>
-              <Button
-                variant="ghost"
-                size="sm"
+              <button
                 onClick={signOut}
-                className="hover:bg-transparent hover:text-foreground p-0"
+                className="text-muted-foreground hover:text-foreground transition-colors p-0 flex items-center h-16"
+                title="Log Out"
               >
                 <LogOut className="h-4 w-4" />
-              </Button>
+              </button>
             </>
           ) : (
             <Button

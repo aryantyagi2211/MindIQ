@@ -14,7 +14,7 @@ serve(async (req) => {
     if (!GROQ_API_KEY) throw new Error("GROQ_API_KEY not configured");
 
     const qual = qualification || age || "Undergraduate";
-    
+
     // Determine format instruction based on examType
     let formatInstruction = "";
     if (examType === "mcq") {
@@ -28,29 +28,31 @@ serve(async (req) => {
     // Random seed to ensure unique questions every time
     const seed = Date.now() + Math.random();
 
-    const prompt = `You are a cognitive assessment engine. Generate 15 completely unique questions for:
-Qualification Level: ${qual}, Field: ${field}, Subfield: ${subfield}, Difficulty: ${difficulty}
+    const prompt = `[AGENTIC ROLE: THE ARCHITECT]
+You are a high-level cognitive architect responsible for generating and validating specialized assessment content.
+Your goal is to cross-check every question for scientific accuracy and eliminate any hallucinations or generic 'pop-psych' fluff.
+
+CONTEXT:
+Qualification Level: ${qual}
+Academic/Professional Field: ${field}
+Specialization (Subfield): ${subfield}
+Neural Complexity (Difficulty): ${difficulty}
 Random Seed: ${seed}
 
-Generate 3 questions of each type:
-1. Pattern Recognition
-2. Logical Deduction
-3. Creative Divergence
-4. Ethical Reasoning
-5. Systems Thinking
+TASKS:
+1. Generate 15 unique, high-fidelity questions tailored exactly to the subfield logic.
+2. Ensure specific distribution: 3 questions each for Pattern Recognition, Logical Deduction, Creative Divergence, Ethical Reasoning, and Systems Thinking.
+3. [FORMAT RULE]: ${formatInstruction}
 
-IMPORTANT FORMAT RULE: ${formatInstruction}
+SPECIFICATIONS:
+- Secondary/High School: Foundational scenarios, intuitive logic.
+- Undergraduate: Theoretical applications, interdisciplinary links.
+- Masters/PhD: Research-level depth, analytical modeling, specialized subfield nuances (e.g., if Robotics, use Kinematics/AI logic).
 
-Adjust question complexity to match the qualification level:
-- Secondary/High School: simpler concepts, foundational knowledge, age-appropriate scenarios
-- Undergraduate: intermediate complexity, theoretical + applied
-- Postgraduate/Masters: advanced concepts, research-oriented, analytical depth
-- PhD: cutting-edge, research-level, highly specialized
+CRITICAL: Do not repeat standard IQ questions. Create fresh, world-class scenarios. Ensure zero scientific errors.
 
-CRITICAL: Never repeat common IQ test questions. Every session must produce COMPLETELY DIFFERENT questions. Randomize question order, vary the types of scenarios, use different real-world contexts each time. Make questions feel fresh, modern, and relevant to their specific subfield.
-
-Return ONLY valid JSON array (no markdown, no code blocks):
-[{"id": number, "type": string, "question": string, "format": "mcq" or "text", "options": ["A)..","B)..","C)..","D).."] (only if mcq), "correctAnswer": string (only if mcq), "timeLimit": number in seconds, "maxPoints": number}]`;
+Return ONLY valid JSON array:
+[{"id": number, "type": string, "question": string, "format": "mcq" or "text", "options": ["A)..","B)..","C)..","D).."] (if mcq), "correctAnswer": string (if mcq), "timeLimit": number, "maxPoints": number}]`;
 
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
@@ -60,8 +62,11 @@ Return ONLY valid JSON array (no markdown, no code blocks):
       },
       body: JSON.stringify({
         model: "llama-3.3-70b-versatile",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 1.2,
+        messages: [
+          { role: "system", content: "You are The Architect, an agentic evaluator of cognitive questions. You are precise, scientific, and thorough." },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.9,
         max_tokens: 4000,
       }),
     });
@@ -74,7 +79,7 @@ Return ONLY valid JSON array (no markdown, no code blocks):
 
     const data = await response.json();
     let content = data.choices[0].message.content.trim();
-    
+
     if (content.startsWith("```")) {
       content = content.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
     }

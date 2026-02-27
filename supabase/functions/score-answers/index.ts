@@ -24,15 +24,38 @@ serve(async (req) => {
       maxPoints: q.maxPoints,
     }));
 
-    const prompt = `Score these cognitive test answers honestly and accurately:
+    const prompt = `[AGENTIC CREW: THE EVALUATOR & THE ANALYST]
+As THE EVALUATOR, your job is to score these cognitive assessments with brutal honesty and pinpoint accuracy.
+As THE ANALYST, your job is to synthesize these scores into a world-class "Cognitive Archetype" report.
+
+DATA:
 Questions + Answers: ${JSON.stringify(qaPairs)}
-Time taken per question: ${JSON.stringify(timeData)}
 User field: ${field}, Subfield: ${subfield}
 
-For MCQ questions, the correct answer is provided. For text questions, evaluate the quality, depth, and creativity of the response.
+SCORING RULES (The Evaluator):
+1. For MCQ: Score only based on the provided correct answer.
+2. For Text (Q&A): Ignore keywords. Score based on the DEPTH of reasoning, complexity of vocabulary, and originality of the solution. If the answer is generic or short, penalize the score.
+3. Be strict. 100 is reserved for genius-level responses.
 
-Return ONLY valid JSON (no markdown, no code blocks):
-{"logic": 0-100, "creativity": 0-100, "intuition": 0-100, "emotionalIntelligence": 0-100, "systemsThinking": 0-100, "overallScore": 0-100, "aiInsight": "3 sentences describing this specific mind uniquely", "famousMatch": "One real famous historical figure name", "famousMatchReason": "One sentence why they match", "superpowers": ["strength 1", "strength 2"], "blindSpots": ["weakness 1", "weakness 2"]}`;
+INSIGHT RULES (The Analyst):
+1. Determine the "Famous Match" (Real historical figure).
+2. Generate an "Archetype Report": A 4-paragraph detailed analysis of the user's cognitive structure, explaining how their dimensions (Logic, Creativity, etc.) interact. Use professional, futuristic, and encouraging language.
+
+Return ONLY valid JSON:
+{
+  "logic": 0-100, 
+  "creativity": 0-100, 
+  "intuition": 0-100, 
+  "emotionalIntelligence": 0-100, 
+  "systemsThinking": 0-100, 
+  "overallScore": 0-100, 
+  "aiInsight": "3 sentences summary", 
+  "famousMatch": "Name", 
+  "famousMatchReason": "Short reason", 
+  "archetype_report": "Full 4-paragraph detailed report",
+  "superpowers": [".."], 
+  "blindSpots": [".."]
+}`;
 
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
@@ -42,8 +65,11 @@ Return ONLY valid JSON (no markdown, no code blocks):
       },
       body: JSON.stringify({
         model: "llama-3.3-70b-versatile",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.3,
+        messages: [
+          { role: "system", content: "You are a dual-agent system: The Evaluator (scoring) and The Analyst (archetypes). You are insightful, analytical, and futuristic." },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.5,
         max_tokens: 1000,
       }),
     });

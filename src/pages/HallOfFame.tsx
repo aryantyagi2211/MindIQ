@@ -4,59 +4,13 @@ import { getTier, getCountryFlag } from "@/lib/constants";
 import Header from "@/components/Header";
 import ResultCard from "@/components/ResultCard";
 import { motion } from "framer-motion";
-import { Crown, Trophy, Medal } from "lucide-react";
+import { Crown, Trophy, Medal, Loader2 } from "lucide-react";
+import { useNeuralSignature } from "@/hooks/useNeuralSignature";
 
 export default function HallOfFame() {
-  const [topThree, setTopThree] = useState<any[]>([]);
+  const { allRankings, totalPlayers, loading } = useNeuralSignature();
+  const topThree = allRankings.slice(0, 3);
 
-  const [totalPlayers, setTotalPlayers] = useState(0);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      // Fetch profiles and results
-      const { data: profiles } = await supabase.from("profiles").select("user_id, username, country, avatar_url");
-      const { data: results } = await supabase.from("test_results").select("*");
-
-      if (!profiles || !results) return;
-
-      const userGroups = new Map();
-      profiles.forEach(p => userGroups.set(p.user_id, { profiles: p, results: [] }));
-      results.forEach(r => {
-        if (userGroups.has(r.user_id)) {
-          userGroups.get(r.user_id).results.push(r);
-        }
-      });
-
-      const averageRankings = Array.from(userGroups.values())
-        .map(({ profiles, results }) => {
-          const count = results.length;
-          const hasPlayed = count > 0;
-          return {
-            user_id: profiles.user_id,
-            username: profiles.username,
-            country: profiles.country,
-            avatar_url: profiles.avatar_url,
-            overall_score: hasPlayed ? Math.round(results.reduce((s, r) => s + r.overall_score, 0) / count) : 0,
-            percentile: hasPlayed ? Math.round(results.reduce((s, r) => s + r.percentile, 0) / count) : 0,
-            logic: hasPlayed ? Math.round(results.reduce((s, r) => s + r.logic, 0) / count) : 0,
-            creativity: hasPlayed ? Math.round(results.reduce((s, r) => s + r.creativity, 0) / count) : 0,
-            intuition: hasPlayed ? Math.round(results.reduce((s, r) => s + r.intuition, 0) / count) : 0,
-            emotional_intelligence: hasPlayed ? Math.round(results.reduce((s, r) => s + r.emotional_intelligence, 0) / count) : 0,
-            systems_thinking: hasPlayed ? Math.round(results.reduce((s, r) => s + r.systems_thinking, 0) / count) : 0,
-            field: hasPlayed ? results[0].field : "N/A",
-            subfield: hasPlayed ? results[0].subfield : "NONE",
-            famous_match: hasPlayed ? results[0].famous_match : "None",
-            superpowers: hasPlayed ? results[0].superpowers : [],
-            blind_spots: hasPlayed ? results[0].blind_spots : []
-          };
-        })
-        .sort((a, b) => b.overall_score - a.overall_score);
-
-      setTotalPlayers(averageRankings.length);
-      setTopThree(averageRankings.slice(0, 3));
-    };
-    fetchData();
-  }, []);
 
   const getMedalIcon = (i: number) => {
     if (i === 0) return <Crown className="h-10 w-10 text-primary drop-shadow-[0_0_15px_hsl(45_100%_51%/0.6)]" />;
@@ -98,7 +52,12 @@ export default function HallOfFame() {
             </p>
           </div>
 
-          {topThree.length === 0 ? (
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+              <p className="text-muted-foreground animate-pulse font-medium">Scanning the global neural grid...</p>
+            </div>
+          ) : topThree.length === 0 ? (
             <div className="text-center py-20">
               <p className="text-lg text-muted-foreground">No results yet. Take a test to claim the throne!</p>
             </div>
@@ -109,7 +68,7 @@ export default function HallOfFame() {
                 const tier = getTier(m.percentile);
                 return (
                   <motion.div
-                    key={m.id}
+                    key={m.user_id}
                     initial={{ opacity: 0, y: 40 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 + realIndex * 0.2, type: "spring" }}
@@ -136,7 +95,7 @@ export default function HallOfFame() {
                         systemsThinking: m.systems_thinking,
                         overallScore: m.overall_score,
                         famousMatch: m.famous_match || "Unknown",
-                        famousMatchReason: m.famous_match_reason || "",
+                        famousMatchReason: "",
                         superpowers: m.superpowers || [],
                         blindSpots: m.blind_spots || [],
                       }}

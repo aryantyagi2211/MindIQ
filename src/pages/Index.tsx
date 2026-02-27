@@ -8,17 +8,16 @@ import { useAuth } from "@/hooks/useAuth";
 import { getTier, getCountryFlag } from "@/lib/constants";
 import Header from "@/components/Header";
 import ResultCard from "@/components/ResultCard";
+import { useNeuralSignature } from "@/hooks/useNeuralSignature";
+import NeuralHistory from "@/components/NeuralHistory";
 
 export default function Index() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [totalMinds, setTotalMinds] = useState(0);
   const [recentResults, setRecentResults] = useState<any[]>([]);
-  const [userResult, setUserResult] = useState<any>(null);
-  const [userProfile, setUserProfile] = useState<any>(null);
-  const [averages, setAverages] = useState<any>(null);
-  const [globalRank, setGlobalRank] = useState<number | null>(null);
-  const [totalPlayers, setTotalPlayers] = useState(0);
+
+  const { userSignature, userHistory, totalPlayers, loading: rankingsLoading } = useNeuralSignature(user?.id);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -38,78 +37,33 @@ export default function Index() {
           country: r.profiles?.country,
         })));
       }
-
-      // Fetch user's neural signature (averages)
-      if (user) {
-        const { data: profile } = await supabase.from("profiles").select("*").eq("user_id", user.id).single();
-        if (profile) setUserProfile(profile);
-
-        const { data: results } = await supabase.from("test_results").select("*").eq("user_id", user.id);
-
-        if (results && results.length > 0) {
-          const count = results.length;
-          const avg = {
-            percentile: Math.round(results.reduce((s, r) => s + r.percentile, 0) / count),
-            overall_score: Math.round(results.reduce((s, r) => s + r.overall_score, 0) / count),
-            logic: Math.round(results.reduce((s, r) => s + r.logic, 0) / count),
-            creativity: Math.round(results.reduce((s, r) => s + r.creativity, 0) / count),
-            intuition: Math.round(results.reduce((s, r) => s + r.intuition, 0) / count),
-            emotional_intelligence: Math.round(results.reduce((s, r) => s + r.emotional_intelligence, 0) / count),
-            systems_thinking: Math.round(results.reduce((s, r) => s + r.systems_thinking, 0) / count),
-            field: results[0].subfield,
-          };
-          setAverages(avg);
-        } else {
-          // Initialize with 0s for new users
-          setAverages({
-            percentile: 0, overall_score: 0, logic: 0, creativity: 0,
-            intuition: 0, emotional_intelligence: 0, systems_thinking: 0, field: "UNRANKED"
-          });
-        }
-
-        // Global Rank calculation based on averages for ALL users
-        const { data: allResults } = await supabase.from("test_results").select("user_id, overall_score");
-        const { data: allProfiles } = await supabase.from("profiles").select("user_id");
-
-        if (allProfiles) {
-          const userGroups = new Map();
-          allProfiles.forEach(p => userGroups.set(p.user_id, { sum: 0, count: 0 }));
-          (allResults || []).forEach(row => {
-            const existing = userGroups.get(row.user_id) || { sum: 0, count: 0 };
-            userGroups.set(row.user_id, { sum: existing.sum + row.overall_score, count: existing.count + 1 });
-          });
-          const allAverages = Array.from(userGroups.values()).map(g => g.count > 0 ? g.sum / g.count : 0).sort((a, b) => b - a);
-          setTotalPlayers(allAverages.length);
-          const currentScore = (averages?.overall_score || 0);
-          const rank = allAverages.findIndex(s => s <= currentScore) + 1;
-          setGlobalRank(rank);
-        }
-      }
     };
     fetchData();
-  }, [user]);
+  }, []);
 
-  // Build card data - Average Neural Signature or Demo
-  const cardData = averages
+  // Build card data - Global Neural Signature or Demo
+  const hasResults = userSignature && userSignature.overall_score > 0;
+
+  const cardData = hasResults
     ? {
-      percentile: averages.percentile,
+      percentile: userSignature.percentile,
       scores: {
-        logic: averages.logic,
-        creativity: averages.creativity,
-        intuition: averages.intuition,
-        emotionalIntelligence: averages.emotional_intelligence,
-        systemsThinking: averages.systems_thinking,
-        overallScore: averages.overall_score,
-        famousMatch: "Synchronizing...",
+        logic: userSignature.logic,
+        creativity: userSignature.creativity,
+        intuition: userSignature.intuition,
+        emotionalIntelligence: userSignature.emotional_intelligence,
+        systemsThinking: userSignature.systems_thinking,
+        overallScore: userSignature.overall_score,
+        famousMatch: userSignature.famous_match || "Determining...",
         famousMatchReason: "",
-        superpowers: [],
-        blindSpots: [],
+        superpowers: userSignature.superpowers || [],
+        blindSpots: userSignature.blind_spots || [],
         aiInsight: "",
       },
-      username: userProfile?.username || "You",
-      avatarUrl: userProfile?.avatar_url,
-      field: averages.field,
-      rank: globalRank,
+      username: userSignature.username || "You",
+      avatarUrl: userSignature.avatar_url,
+      field: userSignature.subfield,
+      rank: userSignature.rank,
       totalPlayers: totalPlayers,
     }
     : {
@@ -131,7 +85,7 @@ export default function Index() {
       avatarUrl: null,
       field: "Quantum Logic",
       rank: 3,
-      totalPlayers: 12500,
+      totalPlayers: totalPlayers || 12500,
     };
 
   const tier = getTier(cardData.percentile);
@@ -328,7 +282,7 @@ export default function Index() {
                 rank={cardData.rank}
                 totalPlayers={cardData.totalPlayers}
               />
-              {!userResult && (
+              {!hasResults && (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -342,6 +296,26 @@ export default function Index() {
             </div>
           </motion.div>
         </div>
+
+        {/* Neural Growth History Section */}
+        <AnimatePresence>
+          {hasResults && userHistory.length > 1 && (
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6, duration: 0.8 }}
+              className="mt-24 space-y-8"
+            >
+              <div className="text-center space-y-2 mb-12">
+                <h2 className="text-3xl font-black italic tracking-tighter uppercase">Neural <span className="text-yellow-500">Growth</span> History</h2>
+                <div className="w-24 h-[1px] bg-yellow-500/20 mx-auto" />
+                <p className="text-[10px] text-white/30 uppercase tracking-[0.4em]">Tracking your cognitive evolution across the global grid</p>
+              </div>
+
+              <NeuralHistory history={userHistory} />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
       <style>{`
