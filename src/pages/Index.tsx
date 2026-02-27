@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Brain, Zap, ChevronRight, TrendingUp } from "lucide-react";
+import { Brain, Zap, ChevronRight, TrendingUp, Radio, Swords } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { getTier, getCountryFlag } from "@/lib/constants";
@@ -234,11 +234,6 @@ export default function Index() {
               )}
             </div>
 
-            {/* Global Neural Feed */}
-            <div className="pt-6 space-y-12">
-              <GlobalFeed />
-              <ChallengeLobby />
-            </div>
           </motion.div>
 
           {/* Right - single result card */}
@@ -276,7 +271,52 @@ export default function Index() {
           </motion.div>
         </div>
 
-        {/* Neural Growth History Section */}
+        {/* ── Live Activity Section ── */}
+        <motion.section
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.7 }}
+          className="mt-24"
+        >
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* Live Neural Stream */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
+                  <Radio className="h-5 w-5 text-yellow-500" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black italic tracking-tighter uppercase text-white">
+                    Live Neural <span className="text-yellow-500">Stream</span>
+                  </h2>
+                  <p className="text-[9px] text-white/30 uppercase tracking-[0.3em] font-bold">
+                    Real-time test completions worldwide
+                  </p>
+                </div>
+              </div>
+              <GlobalFeed />
+            </div>
+
+            {/* Cognitive Duels */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
+                  <Swords className="h-5 w-5 text-yellow-500" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black italic tracking-tighter uppercase text-white">
+                    Cognitive <span className="text-yellow-500">Duels</span>
+                  </h2>
+                  <p className="text-[9px] text-white/30 uppercase tracking-[0.3em] font-bold">
+                    Challenge others on the same assessment
+                  </p>
+                </div>
+              </div>
+              <ChallengeLobby />
+            </div>
+          </div>
+        </motion.section>
         <AnimatePresence>
           {hasResults && userHistory.length > 1 && (
             <motion.div
