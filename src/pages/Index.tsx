@@ -10,6 +10,8 @@ import Header from "@/components/Header";
 import ResultCard from "@/components/ResultCard";
 import { useNeuralSignature } from "@/hooks/useNeuralSignature";
 import NeuralHistory from "@/components/NeuralHistory";
+import GlobalFeed from "@/components/GlobalFeed";
+import ChallengeLobby from "@/components/ChallengeLobby";
 
 export default function Index() {
   const navigate = useNavigate();
@@ -236,29 +238,10 @@ export default function Index() {
               )}
             </div>
 
-            {/* Recent feed - Glassmorphism style */}
-            <div className="space-y-3 pt-6">
-              <AnimatePresence>
-                {recentResults.slice(0, 3).map((r, i) => (
-                  <motion.div
-                    key={r.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.8 + i * 0.15 }}
-                    className="flex items-center gap-4 p-4 rounded-2xl border border-white/5 bg-white/[0.02] backdrop-blur-md relative overflow-hidden group"
-                  >
-                    <div className="absolute top-0 left-0 w-[2px] h-full bg-yellow-500/40 transform -translate-x-full group-hover:translate-x-0 transition-transform" />
-                    <span className="text-2xl">{getCountryFlag(r.country || "US")}</span>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-white font-black uppercase text-[10px] tracking-wider">{r.username || "Anonymous"}</span>
-                        <span className="px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-500 text-[8px] font-black uppercase tracking-widest">{getTier(r.percentile).title}</span>
-                      </div>
-                      <p className="text-white/30 text-[9px] font-bold mt-1 uppercase tracking-tight">Synchronized into {r.percentile}th Neural Percentile</p>
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+            {/* Global Neural Feed */}
+            <div className="pt-6 space-y-12">
+              <GlobalFeed />
+              <ChallengeLobby />
             </div>
           </motion.div>
 

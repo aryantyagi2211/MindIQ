@@ -1,7 +1,7 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Brain, LogOut, User, Trophy, Hash, Percent, Home, Activity } from "lucide-react";
+import { Brain, LogOut, User, Trophy, Hash, Percent, Home, Activity, Swords } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -11,6 +11,7 @@ export default function Header() {
   const [showAsScore, setShowAsScore] = useState(false);
   const [isTopPerformer, setIsTopPerformer] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [pendingChallenges, setPendingChallenges] = useState(0);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -27,6 +28,36 @@ export default function Header() {
       .then(({ data }) => {
         if (data && data.percentile >= 95) setIsTopPerformer(true);
       });
+
+    // Neural Challenge Listener
+    const fetchPending = async () => {
+      const { count } = await supabase
+        .from("challenges")
+        .select("*", { count: "exact", head: true })
+        .eq("challenged_user_id", user.id)
+        .is("challenged_result_id", null);
+      setPendingChallenges(count || 0);
+    };
+
+    fetchPending();
+
+    const channel = supabase
+      .channel("my-notifications")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "challenges", filter: `challenged_user_id=eq.${user.id}` },
+        () => fetchPending()
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "challenges", filter: `challenged_user_id=eq.${user.id}` },
+        () => fetchPending()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   // Expose toggle state globally for other components
@@ -100,11 +131,17 @@ export default function Header() {
               <NavLink
                 to="/profile"
                 className={({ isActive }) => `
-                  text-sm font-medium transition-all flex items-center h-16 border-b-2 
+                  relative text-sm font-medium transition-all flex items-center h-16 border-b-2 
                   ${isActive ? "text-primary border-primary" : "text-muted-foreground border-transparent hover:text-foreground"}
                 `}
               >
-                <User className="h-4 w-4 mr-1.5" /> Profile
+                <div className="relative">
+                  <User className="h-4 w-4 mr-1.5" />
+                  {pendingChallenges > 0 && (
+                    <span className="absolute -top-1 -left-1 w-2 h-2 bg-yellow-500 rounded-full animate-ping" />
+                  )}
+                </div>
+                Profile
               </NavLink>
               <button
                 onClick={signOut}

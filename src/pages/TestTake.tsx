@@ -111,7 +111,16 @@ export default function TestTake() {
         finalAnswers[currentIndex] = textAnswer;
       }
       navigate("/test/result", {
-        state: { questions, answers: finalAnswers, timeData: finalTimeData, field, subfield, ageGroup: qualification || ageGroup, difficulty },
+        state: {
+          questions,
+          answers: finalAnswers,
+          timeData: finalTimeData,
+          field,
+          subfield,
+          ageGroup: qualification || ageGroup,
+          difficulty,
+          challengeId: location.state?.challengeId
+        },
       });
     }
   }, [currentIndex, questions, answers, timeData, textAnswer, questionStartTime]);
@@ -218,8 +227,8 @@ export default function TestTake() {
                           key={i}
                           onClick={() => handleMCQAnswer(opt)}
                           className={`group relative text-left p-5 rounded-2xl border transition-all duration-300 overflow-hidden ${answers[currentIndex] === opt
-                              ? "border-yellow-500 bg-yellow-500/10 text-white"
-                              : "border-white/5 bg-white/[0.02] text-white/40 hover:border-white/20 hover:bg-white/[0.05] hover:text-white/80"
+                            ? "border-yellow-500 bg-yellow-500/10 text-white"
+                            : "border-white/5 bg-white/[0.02] text-white/40 hover:border-white/20 hover:bg-white/[0.05] hover:text-white/80"
                             }`}
                         >
                           {answers[currentIndex] === opt && (

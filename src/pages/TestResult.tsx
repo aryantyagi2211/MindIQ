@@ -26,6 +26,7 @@ export default function TestResult() {
   const [resultId, setResultId] = useState<string | null>(null);
   const [username, setUsername] = useState("You");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [challengerScore, setChallengerScore] = useState<number | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
   // Calculate stats from answers
@@ -108,7 +109,27 @@ export default function TestResult() {
           blind_spots: s.blindSpots,
         }).select().single();
 
-        if (insertData) setResultId(insertData.id);
+        if (insertData) {
+          setResultId(insertData.id);
+
+          // Handle challenge completion
+          const challengeId = location.state?.challengeId;
+          if (challengeId) {
+            const { data: challengeData } = await supabase
+              .from("challenges")
+              .update({
+                challenged_user_id: user.id,
+                challenged_result_id: insertData.id
+              })
+              .eq("id", challengeId)
+              .select("test_results:challenger_result_id(overall_score)")
+              .single();
+
+            if (challengeData) {
+              setChallengerScore((challengeData as any).test_results.overall_score);
+            }
+          }
+        }
       }
 
       startReveal(pct);
@@ -302,6 +323,38 @@ export default function TestResult() {
               attempts: attemptCount,
             }}
           />
+
+          {/* Neural Clash Duel Overlay */}
+          <AnimatePresence>
+            {challengerScore !== null && phase === "done" && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="absolute -bottom-16 left-1/2 -translate-x-1/2 w-full max-w-sm"
+              >
+                <div className="bg-black/80 backdrop-blur-2xl border border-yellow-500/30 rounded-2xl p-4 flex items-center justify-between shadow-[0_0_40px_rgba(255,191,0,0.2)]">
+                  <div className="text-center flex-1">
+                    <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1">Rival</p>
+                    <p className="text-2xl font-black italic text-white/60">{challengerScore}</p>
+                  </div>
+                  <div className="px-4">
+                    <div className="w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center text-black font-black italic text-xs shadow-[0_0_20px_rgba(255,191,0,0.5)]">
+                      VS
+                    </div>
+                  </div>
+                  <div className="text-center flex-1">
+                    <p className="text-[9px] font-black text-yellow-500 uppercase tracking-widest mb-1">You</p>
+                    <p className="text-2xl font-black italic text-yellow-500">{scores.overallScore}</p>
+                  </div>
+                </div>
+                <div className="mt-4 text-center">
+                  <span className={`text-[10px] font-black uppercase tracking-[0.4em] ${scores.overallScore > challengerScore ? 'text-yellow-500 animate-pulse' : 'text-white/40'}`}>
+                    {scores.overallScore > challengerScore ? 'Neural Dominance Established' : 'Optimization Required'}
+                  </span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
 
         {phase === "done" && (
