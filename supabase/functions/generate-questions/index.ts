@@ -16,41 +16,41 @@ serve(async (req) => {
     const qual = qualification || age || "Undergraduate";
 
     let formatInstruction = "";
+    let jsonSchema = "";
+
     if (examType === "mcq") {
-      formatInstruction = "FORCE MCQ ONLY: Every single question MUST be MCQ format ('format': 'mcq') with 4 options and a correctAnswer. ABSOLUTELY NO open-ended text questions.";
+      formatInstruction = "All questions MUST be Multiple Choice (MCQ).";
+      jsonSchema = `[{"id": number, "type": string, "question": string, "format": "mcq", "options": ["A)..","B)..","C)..","D"..], "correctAnswer": string, "timeLimit": number, "maxPoints": number}]`;
     } else if (examType === "qa") {
-      formatInstruction = "FORCE Q&A ONLY: Every single question MUST be open-ended format ('format': 'text'). ABSOLUTELY NO MCQ options or correctAnswers. The user will type their response.";
+      formatInstruction = "All questions MUST be Open-Ended Q&A (text format). DO NOT include any options or correct answers.";
+      jsonSchema = `[{"id": number, "type": string, "question": string, "format": "text", "timeLimit": number, "maxPoints": number}]`;
     } else {
-      formatInstruction = "MIXED MODE: Provide a balance of MCQ and open-ended text formats.";
+      formatInstruction = "Provide a mix of MCQ and text questions.";
+      jsonSchema = `[{"id": number, "type": string, "question": string, "format": "mcq" | "text", "options": [".."] (if mcq), "correctAnswer": ".." (if mcq), "timeLimit": number, "maxPoints": number}]`;
     }
 
     // Random seed to ensure unique questions every time
     const seed = Date.now() + Math.random();
 
     const prompt = `[AGENTIC ROLE: THE ARCHITECT]
-You are a high-level cognitive architect responsible for generating and validating specialized assessment content.
-Your goal is to cross-check every question for scientific accuracy and eliminate any hallucinations.
+You are a high-level cognitive architect. Your goal is to generate specialized assessment content for the field of ${field} (${subfield}).
 
-CRITICAL FORMAT REQUIREMENT: ${formatInstruction}
+CRITICAL INSTRUCTION: ${formatInstruction}
+You must follow this format with 100% strictness. 
 
 CONTEXT:
-Qualification Level: ${qual}
+Level: ${qual}
 Field: ${field}
 Subfield: ${subfield}
 Difficulty: ${difficulty}
 Seed: ${seed}
 
 TASKS:
-1. Generate 15 unique questions specifically for the ${subfield} specialization.
+1. Generate 15 unique questions for ${subfield}.
 2. Distribution: 3 questions each for Pattern Recognition, Logical Deduction, Creative Divergence, Ethical Reasoning, and Systems Thinking.
 
-SPECIFICATIONS:
-- High School: Foundational scenarios.
-- Undergraduate: Applied theory.
-- Masters/PhD: Research-level depth.
-
-Return ONLY valid JSON array:
-[{"id": number, "type": string, "question": string, "format": "mcq" | "text", "options": ["A)..","B)..","C)..","D).."] (IF AND ONLY IF mcq), "correctAnswer": string (IF AND ONLY IF mcq), "timeLimit": number, "maxPoints": number}]`;
+Return ONLY a valid JSON array matching this EXACT schema:
+${jsonSchema}`;
 
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
@@ -61,10 +61,10 @@ Return ONLY valid JSON array:
       body: JSON.stringify({
         model: "llama-3.3-70b-versatile",
         messages: [
-          { role: "system", content: "You are The Architect. You follow format instructions with 100% strictness. If the user asks for MCQ, you NEVER provide text questions. If the user asks for Q&A, you NEVER provide MCQ." },
+          { role: "system", content: "You are The Architect. You are a precise JSON generator that never deviates from the requested format." },
           { role: "user", content: prompt }
         ],
-        temperature: 0.8,
+        temperature: 0.7,
         max_tokens: 4000,
       }),
     });
@@ -82,7 +82,14 @@ Return ONLY valid JSON array:
       content = content.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
     }
 
-    const questions = JSON.parse(content);
+    let questions = JSON.parse(content);
+
+    // Final Safety Filter: Ensure questions match the requested examType
+    if (examType === "mcq") {
+      questions = questions.filter((q: any) => q.format === "mcq" && q.options && q.options.length === 4);
+    } else if (examType === "qa") {
+      questions = questions.filter((q: any) => q.format === "text");
+    }
 
     return new Response(JSON.stringify({ questions }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
