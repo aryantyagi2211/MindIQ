@@ -12,9 +12,9 @@ serve(async (req: Request) => {
   try {
     const { questions, answers, timeData, stream, qualification, difficulty } = await req.json();
 
-    // PROXY TO LOCAL CREWAI SERVICE
+    // PING LIVE CREWAI SERVICE
     try {
-      const response = await fetch("http://localhost:8000/evaluate", {
+      const response = await fetch("https://2iqlldau.up.railway.app/evaluate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ questions, answers, qualification, stream, difficulty }),
@@ -27,7 +27,7 @@ serve(async (req: Request) => {
         });
       }
     } catch (proxyError) {
-      console.error("Local CrewAI service unreachable, falling back to basic scoring:", proxyError);
+      console.error("Live CrewAI service unreachable, falling back to basic scoring:", proxyError);
     }
 
     // FALLBACK: BASIC GROQ SCORING (Old Logic)

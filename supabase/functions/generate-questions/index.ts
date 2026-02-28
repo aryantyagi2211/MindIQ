@@ -12,9 +12,9 @@ serve(async (req: Request) => {
   try {
     const { qualification, stream, difficulty, examType } = await req.json();
 
-    // PROXY TO LOCAL CREWAI SERVICE
+    // PING LIVE CREWAI SERVICE
     try {
-      const response = await fetch("http://localhost:8000/generate", {
+      const response = await fetch("https://2iqlldau.up.railway.app/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ qualification, stream, difficulty, examType }),
@@ -27,7 +27,7 @@ serve(async (req: Request) => {
         });
       }
     } catch (proxyError) {
-      console.error("Local CrewAI service unreachable, falling back to basic generation:", proxyError);
+      console.error("Live CrewAI service unreachable, falling back to basic generation:", proxyError);
     }
 
     // FALLBACK: BASIC GROQ GENERATION (Old Logic)
