@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      battles: {
+        Row: {
+          created_at: string
+          difficulty: string
+          field: string
+          id: string
+          player1_answers: Json | null
+          player1_id: string
+          player1_score: number | null
+          player2_answers: Json | null
+          player2_id: string | null
+          player2_score: number | null
+          qualification: string
+          questions: Json | null
+          status: string
+          subfield: string
+          updated_at: string
+          winner_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          difficulty?: string
+          field: string
+          id?: string
+          player1_answers?: Json | null
+          player1_id: string
+          player1_score?: number | null
+          player2_answers?: Json | null
+          player2_id?: string | null
+          player2_score?: number | null
+          qualification?: string
+          questions?: Json | null
+          status?: string
+          subfield: string
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          difficulty?: string
+          field?: string
+          id?: string
+          player1_answers?: Json | null
+          player1_id?: string
+          player1_score?: number | null
+          player2_answers?: Json | null
+          player2_id?: string | null
+          player2_score?: number | null
+          qualification?: string
+          questions?: Json | null
+          status?: string
+          subfield?: string
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Relationships: []
+      }
       challenges: {
         Row: {
           challenge_code: string
@@ -49,6 +106,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "test_results"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenges_challenged_user_id_profiles_fkey"
+            columns: ["challenged_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "challenges_challenger_id_profiles_fkey"
+            columns: ["challenger_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "challenges_challenger_result_id_fkey"
@@ -177,7 +248,15 @@ export type Database = {
           tier_title?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "test_results_user_id_profiles_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
     }
     Views: {
