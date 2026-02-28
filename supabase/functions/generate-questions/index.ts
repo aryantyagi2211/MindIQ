@@ -12,9 +12,10 @@ serve(async (req: Request) => {
   try {
     const { qualification, stream, difficulty, examType } = await req.json();
 
-    // PING LIVE CREWAI SERVICE
+    // PING LIVE CREWAI SERVICE (Force update for Lovable)
     try {
-      const response = await fetch("https://2iqlldau.up.railway.app/generate", {
+      const liveUrl = "https://2iqlldau.up.railway.app/generate";
+      const response = await fetch(liveUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ qualification, stream, difficulty, examType }),
