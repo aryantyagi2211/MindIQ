@@ -1,14 +1,28 @@
-import os
-from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 from crewai import Agent, Task, Crew, Process, LLM
 import json
+import os
+from dotenv import load_dotenv
 
 load_dotenv()
 
 app = FastAPI(title="MindIQ CrewAI Service")
+
+# Setup CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Adjust this in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.get("/")
+def health_check():
+    return {"status": "ok", "service": "MindIQ CrewAI Service"}
 
 # Initialize LLM (Groq)
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
