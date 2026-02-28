@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { QUALIFICATIONS, QUALIFICATION_FIELDS, DIFFICULTIES, type Qualification } from "@/lib/constants";
 import Header from "@/components/Header";
-import { Brain, ChevronRight, Zap, GraduationCap } from "lucide-react";
+import { Brain, ChevronRight, Zap, GraduationCap, Construction } from "lucide-react";
 import { toast } from "sonner";
 
 export default function TestSetup() {
@@ -25,9 +25,7 @@ export default function TestSetup() {
 
   const handleStart = () => {
     if (!canStart) return;
-    navigate("/test/take", {
-      state: { qualification, difficulty, stream, examType: "mcq" },
-    });
+    toast.info("🚧 New AI paper engine coming soon! Stay tuned.");
   };
 
   return (
@@ -173,7 +171,7 @@ export default function TestSetup() {
                 {canStart ? (
                   <span className="flex items-center gap-3">
                     <Zap className="h-5 w-5 fill-current animate-pulse" />
-                    INITIATE ASSESSMENT
+                    ASSESSMENT PAPER
                   </span>
                 ) : (
                   "CALIBRATION INCOMPLETE"
