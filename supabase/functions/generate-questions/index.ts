@@ -92,6 +92,7 @@ JSON format for each question:
 
     const data = await groqRes.json();
     let content = data.choices[0].message.content.trim();
+    // Strip any accidental markdown code fences
     if (content.startsWith("```")) content = content.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
     const questions = JSON.parse(content);
 

@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Question } from "@/lib/constants";
@@ -42,10 +41,9 @@ export default function TestTake() {
   const [timeLeft, setTimeLeft] = useState(0);
   const [questionStartTime, setQuestionStartTime] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [textAnswer, setTextAnswer] = useState("");
+
 
   useEffect(() => {
-    if (!stream) { navigate("/test/setup"); return; }
 
     const fetchQuestions = async () => {
       try {
@@ -91,25 +89,17 @@ export default function TestTake() {
     newTimeData[currentIndex] = timeTaken;
     setTimeData(newTimeData);
 
-    // Save text answer
-    if (questions[currentIndex]?.format === "text" && textAnswer) {
-      const newAnswers = [...answers];
-      newAnswers[currentIndex] = textAnswer;
-      setAnswers(newAnswers);
-    }
+
 
     if (currentIndex < questions.length - 1) {
       setCurrentIndex(prev => prev + 1);
       setTimeLeft(questions[currentIndex + 1].timeLimit);
       setQuestionStartTime(Date.now());
-      setTextAnswer("");
+
     } else {
       // Submit
       const finalTimeData = newTimeData;
       const finalAnswers = [...answers];
-      if (questions[currentIndex]?.format === "text") {
-        finalAnswers[currentIndex] = textAnswer;
-      }
       navigate("/test/result", {
         state: {
           questions,
@@ -122,7 +112,7 @@ export default function TestTake() {
         },
       });
     }
-  }, [currentIndex, questions, answers, timeData, textAnswer, questionStartTime]);
+  }, [currentIndex, questions, answers, timeData, questionStartTime]);
 
   const handleMCQAnswer = (option: string) => {
     const newAnswers = [...answers];
@@ -137,7 +127,7 @@ export default function TestTake() {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center space-y-4">
           <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
           <p className="text-lg text-foreground">AI is crafting your unique questions...</p>
-          <p className="text-sm text-muted-foreground">Tailored to {stream} in {qualification}</p>
+          <p className="text-sm text-muted-foreground">{stream ? `Tailored to ${stream} in ${qualification}` : `Comprehensive Evaluation for ${qualification}`}</p>
         </motion.div>
       </div>
     );
@@ -219,7 +209,17 @@ export default function TestTake() {
                 </h2>
 
                 <div className="flex-1">
-                  {q.format === "mcq" && q.options ? (
+                  {(!q.options || q.options.length === 0) ? (
+                    <div className="flex flex-col items-center justify-center gap-4 py-8">
+                      <p className="text-white/40 text-sm italic">Question format error — click Skip.</p>
+                      <button
+                        onClick={handleNext}
+                        className="px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-white/60 font-bold text-sm hover:bg-white/10 transition-all"
+                      >
+                        Skip →
+                      </button>
+                    </div>
+                  ) : (
                     <div className="grid grid-cols-1 gap-4">
                       {q.options.map((opt, i) => (
                         <button
@@ -242,21 +242,6 @@ export default function TestTake() {
                           </div>
                         </button>
                       ))}
-                    </div>
-                  ) : (
-                    <div className="space-y-6">
-                      <Textarea
-                        value={textAnswer}
-                        onChange={e => setTextAnswer(e.target.value)}
-                        placeholder="Synthesize neural response..."
-                        className="bg-white/5 border-white/10 rounded-2xl focus:border-yellow-500/50 focus:ring-yellow-500/20 min-h-[160px] text-lg font-medium p-6 resize-none"
-                      />
-                      <button
-                        onClick={handleNext}
-                        className="w-full py-4 rounded-2xl bg-yellow-500 text-black font-black italic tracking-tighter text-lg hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_0_40px_rgba(255,191,0,0.3)]"
-                      >
-                        {currentIndex < questions.length - 1 ? "NEXT PULSE" : "EXECUTE SUBMISSION"}
-                      </button>
                     </div>
                   )}
                 </div>

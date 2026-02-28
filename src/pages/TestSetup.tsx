@@ -4,21 +4,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { QUALIFICATIONS, QUALIFICATION_FIELDS, DIFFICULTIES, type Qualification } from "@/lib/constants";
 import Header from "@/components/Header";
-import { Brain, ChevronRight, ListChecks, MessageSquareText, Sparkles, Zap, GraduationCap } from "lucide-react";
-
-const EXAM_TYPES = [
-  { key: "mcq", label: "MCQ", icon: ListChecks, desc: "Multiple choice only" },
-  { key: "qa", label: "Q&A", icon: MessageSquareText, desc: "Open-ended only" },
-] as const;
-
-type ExamType = typeof EXAM_TYPES[number]["key"];
+import { Brain, ChevronRight, Zap, GraduationCap } from "lucide-react";
+import { toast } from "sonner";
 
 export default function TestSetup() {
   const navigate = useNavigate();
   const [qualification, setQualification] = useState<Qualification>("Secondary School");
   const [difficulty, setDifficulty] = useState("Basic");
   const [stream, setStream] = useState("");
-  const [examType, setExamType] = useState<ExamType>("mcq");
 
   const availableStreams = QUALIFICATION_FIELDS[qualification] || [];
 
@@ -28,12 +21,12 @@ export default function TestSetup() {
     setStream("");
   };
 
-  const canStart = qualification && difficulty && stream && examType;
+  const canStart = qualification && difficulty;
 
   const handleStart = () => {
     if (!canStart) return;
     navigate("/test/take", {
-      state: { qualification, difficulty, stream, examType },
+      state: { qualification, difficulty, stream, examType: "mcq" },
     });
   };
 
@@ -77,12 +70,12 @@ export default function TestSetup() {
             </p>
           </div>
 
-          {/* TWO BOXES DESIGN */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full max-w-5xl">
+          {/* CONFIGURATION BOX */}
+          <div className="flex justify-center w-full max-w-2xl mx-auto">
             {/* Box 1 */}
             <motion.div
-              initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}
-              className="rounded-3xl border border-white/10 bg-white/[0.01] backdrop-blur-[60px] p-6 shadow-[inset_0_0_30px_rgba(255,255,255,0.02),0_20px_40px_rgba(0,0,0,0.4)] relative overflow-hidden group"
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+              className="w-full rounded-3xl border border-white/10 bg-white/[0.01] backdrop-blur-[60px] p-6 shadow-[inset_0_0_30px_rgba(255,255,255,0.02),0_20px_40px_rgba(0,0,0,0.4)] relative overflow-hidden group"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent opacity-50" />
               <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-yellow-500/30 to-transparent" />
@@ -139,6 +132,15 @@ export default function TestSetup() {
                     Studies / Stream
                   </label>
                   <div className="flex flex-wrap gap-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                    <button
+                      onClick={() => setStream("")}
+                      className={`px-3 py-1.5 rounded-xl text-[10px] font-bold border transition-all duration-300 ${stream === ""
+                        ? "border-yellow-500 bg-yellow-500 text-black shadow-[0_0_20px_rgba(255,191,0,0.5)]"
+                        : "border-white/5 bg-white/5 text-white/20 hover:border-white/20 hover:text-white/80"
+                        }`}
+                    >
+                      All Subjects
+                    </button>
                     {availableStreams.map(s => (
                       <button
                         key={s}
@@ -151,58 +153,6 @@ export default function TestSetup() {
                         {s}
                       </button>
                     ))}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Box 2 (Simplified or repurposed for Assessment logic) */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}
-              className="rounded-3xl border border-white/10 bg-white/[0.01] backdrop-blur-[60px] p-6 shadow-[inset_0_0_30px_rgba(255,255,255,0.02),0_20px_40px_rgba(0,0,0,0.4)] relative overflow-hidden flex flex-col"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent opacity-50" />
-              <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-yellow-500/30 to-transparent" />
-
-              <div className="relative z-10 flex-1 space-y-8">
-                <div className="p-4 rounded-2xl border border-dashed border-white/5 bg-white/[0.02] space-y-2">
-                  <p className="text-[10px] font-bold text-yellow-500/80 tracking-wider flex items-center gap-2">
-                    <Sparkles className="h-3 w-3" /> AGENTIC INSIGHT
-                  </p>
-                  <p className="text-[9px] text-white/40 leading-relaxed italic">
-                    {difficulty === "Basic" && "Our agents will fetch verified textbook questions to establish your foundational neural mapping."}
-                    {difficulty === "Standard" && "Conceptual frameworks remain stable, but analytical variables will be dynamically randomized by CrewAI."}
-                    {difficulty === "Competitive" && "The Architect will generate high-complexity cognitive hurdles. Expect a brutal verification of your systems thinking."}
-                    {!stream && "Select your stream to initialize the cognitive landscape."}
-                  </p>
-                </div>
-
-                {/* Exam Type */}
-                <div className="space-y-4">
-                  <label className="text-[9px] font-black text-yellow-500/60 uppercase tracking-[0.4em]">Assessment Logic</label>
-                  <div className="grid grid-cols-2 gap-3">
-                    {EXAM_TYPES.map(et => {
-                      const Icon = et.icon;
-                      const isActive = examType === et.key;
-                      return (
-                        <button
-                          key={et.key}
-                          onClick={() => setExamType(et.key)}
-                          className={`flex items-center gap-3 p-3 rounded-xl border transition-all duration-300 ${isActive
-                            ? "border-yellow-500/30 bg-yellow-500/5"
-                            : "border-white/5 bg-white/5 hover:border-white/10"
-                            }`}
-                        >
-                          <div className={`p-2 rounded-lg ${isActive ? "bg-yellow-500/20" : "bg-white/5"}`}>
-                            <Icon className={`h-4 w-4 ${isActive ? "text-yellow-500" : "text-white/20"}`} />
-                          </div>
-                          <div className="text-left">
-                            <p className={`font-black text-[9px] ${isActive ? "text-yellow-400" : "text-white/40"}`}>{et.label}</p>
-                            <p className="text-[6px] text-white/10 uppercase font-bold tracking-widest">{et.desc.split(' ')[0]}</p>
-                          </div>
-                        </button>
-                      );
-                    })}
                   </div>
                 </div>
               </div>
@@ -223,7 +173,7 @@ export default function TestSetup() {
                 {canStart ? (
                   <span className="flex items-center gap-3">
                     <Zap className="h-5 w-5 fill-current animate-pulse" />
-                    INITIATE CREWAI TEST
+                    INITIATE ASSESSMENT
                   </span>
                 ) : (
                   "CALIBRATION INCOMPLETE"
