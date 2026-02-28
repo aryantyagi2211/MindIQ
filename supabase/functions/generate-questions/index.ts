@@ -15,60 +15,62 @@ serve(async (req: Request) => {
     const GROQ_API_KEY = (globalThis as any).Deno.env.get("GROQ_API_KEY");
     if (!GROQ_API_KEY) throw new Error("GROQ_API_KEY not configured");
 
-    const subjectContext = stream
-      ? `the subject of "${stream}"`
-      : `all core subjects relevant to ${qualification} level students`;
+    // Build subject scope
+    const subjectScope = stream && stream.trim() !== ""
+      ? `ONLY the subject: "${stream}". Do NOT include topics from any other subject.`
+      : `all core subjects taught at the ${qualification} level (e.g. Science, Math, Social Studies, Language Arts, etc.)`;
 
-    let difficultyInstruction = "";
+    // Build difficulty-based instruction
+    let levelInstruction = "";
     if (difficulty === "Basic") {
-      difficultyInstruction = `The scenarios must be directly derived from standard ${qualification} level textbooks. Present foundational concepts as real-world situations students would encounter. Language and reasoning should be accessible and straightforward.`;
+      levelInstruction = `
+- Draw scenarios DIRECTLY from standard ${qualification} level textbooks and curriculum.
+- Situations should be familiar and relatable to a student at this level.
+- One clear correct answer that a well-read student at this level would recognize.
+- Language must be simple and age-appropriate.`;
     } else if (difficulty === "Standard") {
-      difficultyInstruction = `The scenarios must take textbook concepts and modify key variables, add complexity, or require multi-step reasoning. Students cannot answer by simple recall — they must apply actual understanding.`;
-    } else if (difficulty === "Competitive") {
-      difficultyInstruction = `Create totally unique, high-stakes scenarios that are deeply analytical. These should challenge even top students with non-obvious answers, cross-disciplinary thinking, and edge-case logic. Draw inspiration from elite competitive exam styles (IAS, GRE, GMAT, Olympiad, etc.).`;
+      levelInstruction = `
+- Scenarios should apply ${qualification} level concepts to slightly novel, real-world contexts.
+- Students must think analytically — simple recall is NOT enough.
+- Introduce variables or conditions that require reasoning beyond direct memorization.
+- Moderate language complexity.`;
+    } else {
+      levelInstruction = `
+- Create highly complex, unique scenarios inspired by competitive exams (GRE, Olympiad, IAS, SAT, GMAT).
+- Questions should demand cross-subject thinking, advanced logic, and nuanced judgment.
+- The correct answer should NOT be obvious and requires deep understanding.
+- Challenging academic vocabulary and sophisticated scenario design.`;
     }
 
-    const prompt = `You are a world-class academic examiner creating a rigorous question paper.
+    const systemPrompt = `You are a world-class academic examiner. Your ONLY output is a raw JSON array — NO markdown, NO explanation, NO code fences, NO intro text. Just the JSON array.`;
 
-TASK: Generate EXACTLY 15 MCQ Case-Study questions for ${qualification} level students studying ${subjectContext}.
+    const userPrompt = `Generate EXACTLY 15 MCQ Case-Study questions.
 
-DIFFICULTY: ${difficulty}
-${difficultyInstruction}
+Subject scope: ${subjectScope}
+Level: ${qualification}
+Difficulty: ${difficulty}
+${levelInstruction}
 
-===STRICT RULES (FOLLOW THESE OR YOUR OUTPUT IS INVALID)===
+ABSOLUTE RULES — violating any rule makes your output invalid:
 
-RULE 1 — FORMAT: ALL 15 questions MUST have "format": "mcq". NEVER "text". NO EXCEPTIONS.
+1. EVERY question format must be "mcq" — never "text", never open-ended.
+2. EVERY question must be a case study: start with a detailed real-world scenario of at least 3 sentences describing people, events, or a situation. End with a specific analytical question about it.
+3. NEVER generate: number/letter sequences, "what comes next", arithmetic drills, fill-in-the-blank, definition questions, analogy questions, or true/false disguised as MCQ.
+4. Provide EXACTLY 4 answer options per question. Options are plain text — do NOT prefix with A), B), C), D).
+5. "correctAnswer" must be an EXACT copy of one of the options — character for character.
+6. Each question must cover a DIFFERENT scenario and topic. No two questions may be about the same situation.
+7. Return ONLY a raw JSON array. Nothing before or after the array.
 
-RULE 2 — NO PATTERN QUESTIONS: You are STRICTLY FORBIDDEN from generating any of the following:
-  - Number sequences (e.g. "What comes next: 2, 5, 8, 11?")
-  - Letter sequences or substitutions
-  - Simple arithmetic problems
-  - Coding/output prediction
-  - Fill in the blank
-  - Direct factual recall ("What is the capital of...?")
-  - True/False style questions disguised as MCQ
-  - Analogy questions ("A is to B as C is to...")
-
-RULE 3 — CASE STUDY FORMAT ONLY: Every question MUST start with a multi-sentence real-world scenario or narrative (at least 3 sentences describing a situation, person, event, or dilemma). THEN ask a specific analytical question about that scenario.
-
-RULE 4 — OPTIONS: Provide exactly 4 distinct MCQ options. Options must NOT start with "A)", "B)", "C)", "D)". They must be plain text.
-
-RULE 5 — CORRECT ANSWER: The "correctAnswer" must exactly match one of the options (copy-paste identical).
-
-RULE 6 — UNIQUENESS: Each question must be about a completely different scenario and subject topic. No two questions may look similar.
-
-RULE 7 — OUTPUT: Return ONLY a raw JSON array. No markdown, no explanation, no intro text.
-
-JSON format for each question:
+JSON structure for each of the 15 questions:
 {
-  "id": number,
+  "id": number (1-15),
   "type": "Case Study",
-  "question": "string — 3+ sentence scenario followed by a specific question",
+  "question": "3+ sentence real-world scenario followed by the analytical question",
   "format": "mcq",
-  "options": ["option 1", "option 2", "option 3", "option 4"],
-  "correctAnswer": "string — must exactly match one option",
-  "timeLimit": number (90 to 150 seconds),
-  "maxPoints": number (15 to 30)
+  "options": ["plain option 1", "plain option 2", "plain option 3", "plain option 4"],
+  "correctAnswer": "exact copy of the correct option",
+  "timeLimit": number (between 90 and 150),
+  "maxPoints": number (between 15 and 30)
 }`;
 
     const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -80,26 +82,45 @@ JSON format for each question:
       body: JSON.stringify({
         model: "llama-3.3-70b-versatile",
         messages: [
-          {
-            role: "system",
-            content: "You are a strict academic examiner. You only output raw JSON with NO markdown. You never generate pattern recognition or sequence questions. Every question is a rich, narrative case study.",
-          },
-          { role: "user", content: prompt },
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
         ],
-        temperature: 0.9,
+        temperature: 0.85,
+        max_tokens: 8000,
       }),
     });
 
-    const data = await groqRes.json();
-    let content = data.choices[0].message.content.trim();
-    // Strip any accidental markdown code fences
-    if (content.startsWith("```")) content = content.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
+    const groqData = await groqRes.json();
+
+    if (!groqData.choices || !groqData.choices[0]) {
+      throw new Error("Invalid response from Groq: " + JSON.stringify(groqData));
+    }
+
+    let content = groqData.choices[0].message.content.trim();
+
+    // Strip any accidental markdown wrapping
+    content = content.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+
+    // Parse and validate
     const questions = JSON.parse(content);
 
-    return new Response(JSON.stringify({ questions }), {
+    if (!Array.isArray(questions)) {
+      throw new Error("Groq did not return an array of questions");
+    }
+
+    // Ensure all questions are MCQ and have options
+    const cleaned = questions.map((q: any) => ({
+      ...q,
+      format: "mcq",
+      options: Array.isArray(q.options) ? q.options : [],
+    })).filter((q: any) => q.options.length === 4);
+
+    return new Response(JSON.stringify({ questions: cleaned }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+
   } catch (e: any) {
+    console.error("generate-questions error:", e);
     return new Response(JSON.stringify({ error: e.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
