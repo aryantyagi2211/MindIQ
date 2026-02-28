@@ -50,7 +50,11 @@ export default function AuthPage() {
   const handleGoogleLogin = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin },
+      options: {
+        redirectTo: window.location.origin,
+        // The Client ID and Secret are configured in the Supabase Dashboard
+        // under Authentication -> Providers -> Google.
+      },
     });
     if (error) toast.error(error.message);
   };
