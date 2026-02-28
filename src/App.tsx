@@ -14,6 +14,9 @@ import Leaderboard from "./pages/Leaderboard";
 import HallOfFame from "./pages/HallOfFame";
 import Profile from "./pages/Profile";
 import ChallengeView from "./pages/ChallengeView";
+import BattleMatchmaking from "./pages/BattleMatchmaking";
+import BattleFight from "./pages/BattleFight";
+import BattleResult from "./pages/BattleResult";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +39,9 @@ const App = () => (
             <Route path="/hall-of-fame" element={<HallOfFame />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/challenge/:code" element={<ChallengeView />} />
+            <Route path="/battle/:battleId" element={<BattleMatchmaking />} />
+            <Route path="/battle/:battleId/fight" element={<BattleFight />} />
+            <Route path="/battle/:battleId/result" element={<BattleResult />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

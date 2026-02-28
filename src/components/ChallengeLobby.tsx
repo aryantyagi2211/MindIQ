@@ -72,23 +72,29 @@ export default function ChallengeLobby() {
     };
 
     return (
-        <div className="w-full max-w-4xl mx-auto py-12">
-            <div className="flex items-center justify-between mb-8">
-                <div className="space-y-1">
-                    <h2 className="text-3xl font-black italic tracking-tighter uppercase text-white">
-                        Cognitive <span className="text-yellow-500">Duels</span>
-                    </h2>
-                    <div className="h-[1px] w-24 bg-yellow-500/20" />
-                    <p className="text-[10px] text-white/30 uppercase tracking-[0.4em]">Active neural invitations in the global grid</p>
+        <div className="w-full max-w-4xl mx-auto">
+            <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
+                        <Swords className="h-5 w-5 text-yellow-500" />
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-black italic tracking-tighter uppercase text-white">
+                            Open <span className="text-yellow-500">Challenges</span>
+                        </h2>
+                        <p className="text-[9px] text-white/30 uppercase tracking-[0.3em] font-bold">
+                            Active neural invitations
+                        </p>
+                    </div>
                 </div>
 
-                <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10">
                     <motion.div
                         animate={{ scale: [1, 1.2, 1] }}
                         transition={{ duration: 2, repeat: Infinity }}
                         className="w-2 h-2 rounded-full bg-yellow-500"
                     />
-                    <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">{challenges.length} Online</span>
+                    <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">{challenges.length}</span>
                 </div>
             </div>
 

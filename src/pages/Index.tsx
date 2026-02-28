@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Brain, Zap, ChevronRight, TrendingUp, Radio, Swords } from "lucide-react";
+import { Brain, Zap, ChevronRight, TrendingUp, Radio } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { getTier, getCountryFlag } from "@/lib/constants";
@@ -12,6 +12,7 @@ import { useNeuralSignature } from "@/hooks/useNeuralSignature";
 import NeuralHistory from "@/components/NeuralHistory";
 import GlobalFeed from "@/components/GlobalFeed";
 import ChallengeLobby from "@/components/ChallengeLobby";
+import BattleArena from "@/components/BattleArena";
 
 export default function Index() {
   const navigate = useNavigate();
@@ -271,6 +272,9 @@ export default function Index() {
           </motion.div>
         </div>
 
+        {/* ── 1v1 Battle Arena ── */}
+        <BattleArena />
+
         {/* ── Live Activity Section ── */}
         <motion.section
           initial={{ opacity: 0, y: 40 }}
@@ -298,21 +302,8 @@ export default function Index() {
               <GlobalFeed />
             </div>
 
-            {/* Cognitive Duels */}
+            {/* Open Challenges (simplified) */}
             <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
-                  <Swords className="h-5 w-5 text-yellow-500" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-black italic tracking-tighter uppercase text-white">
-                    Cognitive <span className="text-yellow-500">Duels</span>
-                  </h2>
-                  <p className="text-[9px] text-white/30 uppercase tracking-[0.3em] font-bold">
-                    Challenge others on the same assessment
-                  </p>
-                </div>
-              </div>
               <ChallengeLobby />
             </div>
           </div>
