@@ -3,8 +3,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
-from crewai import Agent, Task, Crew, Process
-from langchain_groq import ChatGroq
+from crewai import Agent, Task, Crew, Process, LLM
 import json
 
 load_dotenv()
@@ -19,9 +18,9 @@ if not GROQ_API_KEY:
     # but we'll check again in the endpoints.
     GROQ_API_KEY = ""
 
-llm = ChatGroq(
-    model="llama-3.3-70b-versatile",
-    groq_api_key=GROQ_API_KEY,
+llm = LLM(
+    model="groq/llama-3.3-70b-versatile",
+    api_key=GROQ_API_KEY,
     temperature=0.7
 )
 
