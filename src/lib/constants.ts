@@ -22,18 +22,55 @@ export const SCHOOL_FIELDS = {
 export const QUALIFICATIONS = [
   "Secondary School",
   "High School",
-  "Undergraduate (UG)",
-  "Postgraduate (PG)",
+  "Graduation",
   "Masters",
-  "PhD",
 ] as const;
 
 export type Qualification = typeof QUALIFICATIONS[number];
 
+export const QUALIFICATION_FIELDS: Record<Qualification, string[]> = {
+  "Secondary School": [
+    "Mathematics",
+    "English / Language Arts",
+    "General Science",
+    "Social Studies",
+    "Computer Basics / ICT",
+    "Physical Education",
+    "Art / Creative Studies",
+  ],
+  "High School": [
+    "Mathematics",
+    "Physics",
+    "Chemistry",
+    "Biology",
+    "English",
+    "Economics",
+    "Accountancy",
+    "Business Studies",
+    "History",
+    "Political Science",
+    "Computer Science / ICT",
+  ],
+  "Graduation": [
+    "B.Tech (Computer Science Engineering)",
+    "BCA (Bachelor of Computer Applications)",
+    "B.Sc (Mathematics)",
+    "B.Com (Bachelor of Commerce)",
+    "BA (English)",
+  ],
+  "Masters": [
+    "M.Tech (Computer Science Engineering)",
+    "MCA (Master of Computer Applications)",
+    "M.Sc (Mathematics)",
+    "M.Com (Master of Commerce)",
+    "MA (English)",
+  ],
+};
+
 export const isSchoolLevel = (q: string) => q === "Secondary School" || q === "High School";
 
 export const AGE_GROUPS = ["13-17", "18-24", "25-34", "35-44", "45+"] as const;
-export const DIFFICULTIES = ["Standard", "Hard", "Brutal"] as const;
+export const DIFFICULTIES = ["Basic", "Standard", "Competitive"] as const;
 
 export type Field = keyof typeof FIELDS;
 

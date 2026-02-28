@@ -15,7 +15,7 @@ export default function TestResult() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { questions, answers, timeData, field, subfield, ageGroup, difficulty } = (location.state as any) || {};
+  const { questions, answers, timeData, stream, qualification, difficulty } = (location.state as any) || {};
 
   const [scores, setScores] = useState<any>(null);
   const [percentile, setPercentile] = useState(0);
@@ -57,7 +57,7 @@ export default function TestResult() {
   const scoreAndSave = async () => {
     try {
       const { data, error } = await supabase.functions.invoke("score-answers", {
-        body: { questions, answers, timeData, field, subfield },
+        body: { questions, answers, timeData, stream, qualification },
       });
       if (error) throw error;
       if (data.error) throw new Error(data.error);
@@ -88,10 +88,10 @@ export default function TestResult() {
 
         const { data: insertData } = await supabase.from("test_results").insert({
           user_id: user.id,
-          age_group: ageGroup,
+          age_group: qualification || "Academic",
           difficulty,
-          field,
-          subfield,
+          field: qualification,
+          subfield: stream,
           logic: s.logic,
           creativity: s.creativity,
           intuition: s.intuition,
@@ -274,7 +274,7 @@ export default function TestResult() {
             percentile={displayPercentile}
             tier={tier}
             scores={scores}
-            field={subfield}
+            field={stream}
             phase="done"
             username={username}
             avatarUrl={avatarUrl}
@@ -310,7 +310,7 @@ export default function TestResult() {
             percentile={phase === "done" ? displayPercentile : 0}
             tier={tier}
             scores={scores}
-            field={subfield}
+            field={stream}
             phase={phase}
             username={username}
             avatarUrl={avatarUrl}

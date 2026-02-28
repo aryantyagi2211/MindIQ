@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Python virtual environments & secrets
+crewai_service/venv/
+crewai_service/.env

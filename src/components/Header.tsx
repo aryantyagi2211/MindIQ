@@ -1,7 +1,7 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Brain, LogOut, User, Trophy, Hash, Percent, Home, Activity, Swords } from "lucide-react";
+import { Brain, LogOut, User, Trophy, Hash, Percent, Home, Activity, Swords, History as HistoryIcon } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -132,6 +132,15 @@ export default function Header() {
             `}
           >
             Hall of Fame
+          </NavLink>
+          <NavLink
+            to="/history"
+            className={({ isActive }) => `
+              text-sm font-medium transition-all flex items-center h-16 border-b-2 
+              ${isActive ? "text-primary border-primary" : "text-muted-foreground border-transparent hover:text-foreground"}
+            `}
+          >
+            <HistoryIcon className="inline h-4 w-4 mr-1.5" />History
           </NavLink>
           {isTopPerformer && (
             <button

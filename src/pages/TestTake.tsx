@@ -33,7 +33,7 @@ function TimerRing({ timeLeft, timeLimit }: { timeLeft: number; timeLimit: numbe
 export default function TestTake() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { qualification, difficulty, field, subfield, examType = "mcq", ageGroup } = (location.state as any) || {};
+  const { qualification, difficulty, stream, examType = "mcq", ageGroup } = (location.state as any) || {};
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -45,12 +45,12 @@ export default function TestTake() {
   const [textAnswer, setTextAnswer] = useState("");
 
   useEffect(() => {
-    if (!field) { navigate("/test/setup"); return; }
+    if (!stream) { navigate("/test/setup"); return; }
 
     const fetchQuestions = async () => {
       try {
         const { data, error } = await supabase.functions.invoke("generate-questions", {
-          body: { qualification: qualification || ageGroup, field, subfield, difficulty, examType },
+          body: { qualification: qualification || ageGroup, stream, difficulty, examType },
         });
         if (error) throw error;
         if (data.error) throw new Error(data.error);
@@ -67,7 +67,7 @@ export default function TestTake() {
       }
     };
     fetchQuestions();
-  }, [field]);
+  }, [stream]);
 
   // Timer countdown
   useEffect(() => {
@@ -115,9 +115,8 @@ export default function TestTake() {
           questions,
           answers: finalAnswers,
           timeData: finalTimeData,
-          field,
-          subfield,
-          ageGroup: qualification || ageGroup,
+          stream,
+          qualification: qualification || ageGroup,
           difficulty,
           challengeId: location.state?.challengeId
         },
@@ -138,7 +137,7 @@ export default function TestTake() {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center space-y-4">
           <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
           <p className="text-lg text-foreground">AI is crafting your unique questions...</p>
-          <p className="text-sm text-muted-foreground">Tailored to {subfield} in {field}</p>
+          <p className="text-sm text-muted-foreground">Tailored to {stream} in {qualification}</p>
         </motion.div>
       </div>
     );

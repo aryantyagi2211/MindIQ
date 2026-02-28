@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { FIELDS, SCHOOL_FIELDS, QUALIFICATIONS, DIFFICULTIES, isSchoolLevel, type Qualification } from "@/lib/constants";
+import { QUALIFICATIONS, QUALIFICATION_FIELDS, DIFFICULTIES, type Qualification } from "@/lib/constants";
 import Header from "@/components/Header";
 import { Brain, ChevronRight, ListChecks, MessageSquareText, Sparkles, Zap, GraduationCap } from "lucide-react";
 
@@ -12,36 +12,28 @@ const EXAM_TYPES = [
 ] as const;
 
 type ExamType = typeof EXAM_TYPES[number]["key"];
-type Field = string;
 
 export default function TestSetup() {
   const navigate = useNavigate();
-  const [qualification, setQualification] = useState<Qualification>("Undergraduate (UG)");
-  const [difficulty, setDifficulty] = useState("Standard");
-  const [field, setField] = useState<Field>("Technology");
-  const [subfield, setSubfield] = useState("");
+  const [qualification, setQualification] = useState<Qualification>("Secondary School");
+  const [difficulty, setDifficulty] = useState("Basic");
+  const [stream, setStream] = useState("");
   const [examType, setExamType] = useState<ExamType>("mcq");
 
-  const activeFields = isSchoolLevel(qualification) ? SCHOOL_FIELDS : FIELDS;
-  const availableSubfields = (activeFields as any)[field] || [];
+  const availableStreams = QUALIFICATION_FIELDS[qualification] || [];
 
-  // Reset field/subfield when qualification changes
+  // Reset stream when qualification changes
   const handleQualificationChange = (q: Qualification) => {
     setQualification(q);
-    const newFields = isSchoolLevel(q) ? SCHOOL_FIELDS : FIELDS;
-    if (!(field in newFields)) {
-      const firstField = Object.keys(newFields)[0];
-      setField(firstField);
-    }
-    setSubfield("");
+    setStream("");
   };
 
-  const canStart = qualification && difficulty && field && subfield;
+  const canStart = qualification && difficulty && stream && examType;
 
   const handleStart = () => {
     if (!canStart) return;
     navigate("/test/take", {
-      state: { qualification, difficulty, field, subfield, examType },
+      state: { qualification, difficulty, stream, examType },
     });
   };
 
@@ -140,23 +132,23 @@ export default function TestSetup() {
                   </div>
                 </div>
 
-                {/* Cognitive Sector (dynamic based on qualification) */}
+                {/* Cognitive Sector (now Studies / Stream) */}
                 <div className="space-y-4">
                   <label className="text-[9px] font-black text-yellow-500/60 uppercase tracking-[0.4em] flex items-center gap-2">
                     <span className="w-1 h-1 bg-yellow-500 rounded-full animate-pulse" />
-                    {isSchoolLevel(qualification) ? "STEAM Sector" : "Cognitive Sector"}
+                    Studies / Stream
                   </label>
-                  <div className="flex flex-wrap gap-2">
-                    {Object.keys(activeFields).map(f => (
+                  <div className="flex flex-wrap gap-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                    {availableStreams.map(s => (
                       <button
-                        key={f}
-                        onClick={() => { setField(f); setSubfield(""); }}
-                        className={`px-3 py-1.5 rounded-xl text-[10px] font-bold border transition-all duration-300 ${field === f
+                        key={s}
+                        onClick={() => setStream(s)}
+                        className={`px-3 py-1.5 rounded-xl text-[10px] font-bold border transition-all duration-300 ${stream === s
                           ? "border-yellow-500 bg-yellow-500 text-black shadow-[0_0_20px_rgba(255,191,0,0.5)]"
                           : "border-white/5 bg-white/5 text-white/20 hover:border-white/20 hover:text-white/80"
                           }`}
                       >
-                        {f}
+                        {s}
                       </button>
                     ))}
                   </div>
@@ -164,7 +156,7 @@ export default function TestSetup() {
               </div>
             </motion.div>
 
-            {/* Box 2 */}
+            {/* Box 2 (Simplified or repurposed for Assessment logic) */}
             <motion.div
               initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}
               className="rounded-3xl border border-white/10 bg-white/[0.01] backdrop-blur-[60px] p-6 shadow-[inset_0_0_30px_rgba(255,255,255,0.02),0_20px_40px_rgba(0,0,0,0.4)] relative overflow-hidden flex flex-col"
@@ -172,32 +164,18 @@ export default function TestSetup() {
               <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent opacity-50" />
               <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-yellow-500/30 to-transparent" />
 
-              <div className="relative z-10 flex-1 space-y-6">
-                <AnimatePresence mode="wait">
-                  {field ? (
-                    <motion.div key={field} initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="space-y-4">
-                      <label className="text-[9px] font-black text-yellow-500/60 uppercase tracking-[0.4em]">Specialization Logic</label>
-                      <div className="flex flex-wrap gap-2 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar">
-                        {availableSubfields.map((s: string) => (
-                          <button
-                            key={s}
-                            onClick={() => setSubfield(s)}
-                            className={`px-3 py-1.5 rounded-lg text-[9px] font-bold border transition-all duration-300 ${subfield === s
-                              ? "border-yellow-500 bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
-                              : "border-white/5 bg-white/5 text-white/20 hover:border-white/20 hover:text-white/70"
-                              }`}
-                          >
-                            {s}
-                          </button>
-                        ))}
-                      </div>
-                    </motion.div>
-                  ) : (
-                    <div className="h-44 flex items-center justify-center text-white/5 italic text-[10px] border border-dashed border-white/5 rounded-2xl">
-                      Select domain to expand sub-neural networks
-                    </div>
-                  )}
-                </AnimatePresence>
+              <div className="relative z-10 flex-1 space-y-8">
+                <div className="p-4 rounded-2xl border border-dashed border-white/5 bg-white/[0.02] space-y-2">
+                  <p className="text-[10px] font-bold text-yellow-500/80 tracking-wider flex items-center gap-2">
+                    <Sparkles className="h-3 w-3" /> AGENTIC INSIGHT
+                  </p>
+                  <p className="text-[9px] text-white/40 leading-relaxed italic">
+                    {difficulty === "Basic" && "Our agents will fetch verified textbook questions to establish your foundational neural mapping."}
+                    {difficulty === "Standard" && "Conceptual frameworks remain stable, but analytical variables will be dynamically randomized by CrewAI."}
+                    {difficulty === "Competitive" && "The Architect will generate high-complexity cognitive hurdles. Expect a brutal verification of your systems thinking."}
+                    {!stream && "Select your stream to initialize the cognitive landscape."}
+                  </p>
+                </div>
 
                 {/* Exam Type */}
                 <div className="space-y-4">
@@ -245,7 +223,7 @@ export default function TestSetup() {
                 {canStart ? (
                   <span className="flex items-center gap-3">
                     <Zap className="h-5 w-5 fill-current animate-pulse" />
-                    INITIATE NEURAL LINK
+                    INITIATE CREWAI TEST
                   </span>
                 ) : (
                   "CALIBRATION INCOMPLETE"
