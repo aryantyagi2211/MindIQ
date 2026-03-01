@@ -246,108 +246,107 @@ export default function TestTake() {
 
       <Header />
 
-      <main className="relative min-h-screen flex items-center justify-center p-4 pt-20 z-10">
-        <div className="w-full max-w-2xl">
-          {/* Progress Section */}
-          <div className="flex items-center justify-between mb-8">
-            <div className="space-y-1">
-              <span className="text-[10px] font-black text-yellow-500/60 uppercase tracking-[0.4em] flex items-center gap-2">
-                <span className="w-1 h-1 bg-yellow-500 rounded-full animate-pulse" /> Pulse {currentIndex + 1} / {questions.length}
-              </span>
-              <div className="w-32 h-[1px] bg-gradient-to-r from-yellow-500/30 to-transparent" />
-            </div>
-
-            <div className="flex items-center gap-6">
-              <div className="hidden sm:block h-1 w-32 bg-white/5 rounded-full overflow-hidden border border-white/5">
-                <motion.div
-                  className="h-full bg-yellow-500 shadow-[0_0_15px_rgba(255,191,0,0.8)]"
-                  animate={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
-                />
-              </div>
-              <TimerRing timeLeft={timeLeft} timeLimit={q.timeLimit} />
+      <main className="relative h-screen flex flex-col pt-20 pb-4 px-4 z-10 overflow-hidden">
+        {/* Top Progress Bar */}
+        <div className="flex items-center justify-between mb-4 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] font-black text-yellow-500/60 uppercase tracking-[0.4em] flex items-center gap-2">
+              <span className="w-1 h-1 bg-yellow-500 rounded-full animate-pulse" /> Pulse {currentIndex + 1} / {questions.length}
+            </span>
+            <div className="hidden sm:flex items-center gap-3">
+              <span className="px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-[9px] font-black text-yellow-500 uppercase tracking-widest">{q.type}</span>
+              <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] font-black text-white/40 uppercase tracking-widest">{q.maxPoints} pts</span>
             </div>
           </div>
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentIndex}
-              initial={{ opacity: 0, x: 50, scale: 0.98 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={{ opacity: 0, x: -50, scale: 0.98 }}
-              transition={{ duration: 0.4, type: "spring", damping: 20 }}
-              className="relative group h-full"
-            >
-              {/* Card Decoration */}
-              <div className="absolute -inset-[1px] bg-gradient-to-br from-yellow-500/30 via-white/5 to-white/5 rounded-3xl blur-[1px] opacity-50" />
+          <div className="flex items-center gap-4">
+            <div className="hidden sm:block h-1 w-32 bg-white/5 rounded-full overflow-hidden border border-white/5">
+              <motion.div
+                className="h-full bg-yellow-500 shadow-[0_0_15px_rgba(255,191,0,0.8)]"
+                animate={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
+              />
+            </div>
+            <TimerRing timeLeft={timeLeft} timeLimit={q.timeLimit} />
+          </div>
+        </div>
 
-              <div className="relative bg-black/60 backdrop-blur-3xl border border-white/10 rounded-3xl p-8 md:p-12 shadow-2xl overflow-hidden min-h-[400px] flex flex-col">
-                {/* Internal Glow */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/5 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
+        {/* Split Layout */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentIndex}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.35, type: "spring", damping: 22 }}
+            className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 min-h-0 overflow-hidden"
+          >
+            {/* LEFT: Scenario + Question */}
+            <div className="relative flex flex-col min-h-0">
+              <div className="absolute -inset-[1px] bg-gradient-to-br from-yellow-500/20 via-white/5 to-transparent rounded-3xl blur-[1px] opacity-40" />
+              <div className="relative bg-black/60 backdrop-blur-3xl border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl overflow-y-auto flex-1 flex flex-col">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-500/5 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
 
-                <div className="flex items-center gap-3 mb-6">
-                  <span className="px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-[9px] font-black text-yellow-500 uppercase tracking-widest">{q.type}</span>
-                  <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] font-black text-white/40 uppercase tracking-widest">{q.maxPoints} Neural Points</span>
-                </div>
-
-                {/* Scenario Section - Visually Distinct */}
                 {q.scenario && (
-                  <div className="mb-8 p-6 rounded-2xl bg-white/[0.02] border border-white/5 backdrop-blur-sm">
-                    <div className="flex items-center gap-2 mb-3">
+                  <div className="mb-5 p-4 rounded-2xl bg-white/[0.02] border border-white/5 backdrop-blur-sm">
+                    <div className="flex items-center gap-2 mb-2">
                       <div className="w-1 h-1 bg-yellow-500/60 rounded-full" />
                       <span className="text-[8px] font-black text-yellow-500/60 uppercase tracking-[0.4em]">Scenario</span>
                     </div>
-                    <p className="text-white/70 text-sm md:text-base leading-relaxed font-medium">
+                    <p className="text-white/70 text-sm leading-relaxed font-medium">
                       {q.scenario}
                     </p>
                   </div>
                 )}
 
-                {/* Question */}
-                <h2 className="text-xl md:text-2xl font-black text-white leading-[1.3] mb-8 tracking-tight">
+                <h2 className="text-lg md:text-xl font-black text-white leading-[1.4] tracking-tight">
                   {q.question}
                 </h2>
-
-                <div className="flex-1">
-                  {(!q.options || q.options.length === 0) ? (
-                    <div className="flex flex-col items-center justify-center gap-4 py-8">
-                      <p className="text-white/40 text-sm italic">Question format error — click Skip.</p>
-                      <button
-                        onClick={handleNext}
-                        className="px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-white/60 font-bold text-sm hover:bg-white/10 transition-all"
-                      >
-                        Skip →
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 gap-4">
-                      {q.options.map((opt, i) => (
-                        <button
-                          key={i}
-                          onClick={() => handleMCQAnswer(opt)}
-                          className={`group relative text-left p-5 rounded-2xl border transition-all duration-300 overflow-hidden ${answers[currentIndex] === opt
-                            ? "border-yellow-500 bg-yellow-500/10 text-white"
-                            : "border-white/5 bg-white/[0.02] text-white/40 hover:border-white/20 hover:bg-white/[0.05] hover:text-white/80"
-                            }`}
-                        >
-                          {answers[currentIndex] === opt && (
-                            <motion.div layoutId="active-opt" className="absolute inset-0 bg-yellow-500/5 mix-blend-overlay" />
-                          )}
-                          <div className="relative z-10 flex items-center gap-4">
-                            <div className={`w-6 h-6 rounded-lg border flex items-center justify-center text-[10px] font-black transition-all ${answers[currentIndex] === opt ? "bg-yellow-500 border-yellow-500 text-black" : "border-white/10 group-hover:border-white/30"
-                              }`}>
-                              {String.fromCharCode(65 + i)}
-                            </div>
-                            <span className="font-bold tracking-tight">{opt}</span>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
               </div>
-            </motion.div>
-          </AnimatePresence>
-        </div>
+            </div>
+
+            {/* RIGHT: Options */}
+            <div className="relative flex flex-col min-h-0">
+              <div className="absolute -inset-[1px] bg-gradient-to-bl from-yellow-500/10 via-white/5 to-transparent rounded-3xl blur-[1px] opacity-30" />
+              <div className="relative bg-black/50 backdrop-blur-3xl border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl overflow-y-auto flex-1 flex flex-col justify-center">
+                {(!q.options || q.options.length === 0) ? (
+                  <div className="flex flex-col items-center justify-center gap-4">
+                    <p className="text-white/40 text-sm italic">Question format error — click Skip.</p>
+                    <button
+                      onClick={handleNext}
+                      className="px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-white/60 font-bold text-sm hover:bg-white/10 transition-all"
+                    >
+                      Skip →
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-3">
+                    {q.options.map((opt, i) => (
+                      <button
+                        key={i}
+                        onClick={() => handleMCQAnswer(opt)}
+                        className={`group relative text-left p-4 rounded-2xl border transition-all duration-300 overflow-hidden ${answers[currentIndex] === opt
+                          ? "border-yellow-500 bg-yellow-500/10 text-white"
+                          : "border-white/5 bg-white/[0.02] text-white/40 hover:border-white/20 hover:bg-white/[0.05] hover:text-white/80"
+                          }`}
+                      >
+                        {answers[currentIndex] === opt && (
+                          <motion.div layoutId="active-opt" className="absolute inset-0 bg-yellow-500/5 mix-blend-overlay" />
+                        )}
+                        <div className="relative z-10 flex items-center gap-4">
+                          <div className={`w-7 h-7 rounded-lg border flex items-center justify-center text-[11px] font-black transition-all ${answers[currentIndex] === opt ? "bg-yellow-500 border-yellow-500 text-black" : "border-white/10 group-hover:border-white/30"
+                            }`}>
+                            {String.fromCharCode(65 + i)}
+                          </div>
+                          <span className="font-bold tracking-tight text-sm">{opt}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       <style>{`
