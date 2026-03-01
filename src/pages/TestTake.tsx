@@ -32,7 +32,16 @@ function TimerRing({ timeLeft, timeLimit }: { timeLeft: number; timeLimit: numbe
 export default function TestTake() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { qualification, difficulty, stream, examType = "mcq", ageGroup } = (location.state as any) || {};
+  const state = location.state as { 
+    qualification?: string; 
+    difficulty?: string; 
+    stream?: string; 
+    examType?: string; 
+    ageGroup?: string;
+    challengeId?: string;
+  } | null;
+  
+  const { qualification, difficulty, stream, examType = "mcq", ageGroup, challengeId } = state || {};
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -44,7 +53,6 @@ export default function TestTake() {
 
 
   useEffect(() => {
-
     const fetchQuestions = async () => {
       try {
         const { data, error } = await supabase.functions.invoke("generate-questions", {
@@ -57,15 +65,16 @@ export default function TestTake() {
         setTimeData(new Array(data.questions.length).fill(0));
         setTimeLeft(data.questions[0].timeLimit);
         setQuestionStartTime(Date.now());
-      } catch (e: any) {
-        toast.error("Failed to generate questions: " + e.message);
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : "Unknown error";
+        toast.error("Failed to generate questions: " + errorMessage);
         navigate("/test/setup");
       } finally {
         setLoading(false);
       }
     };
     fetchQuestions();
-  }, [stream]);
+  }, [qualification, ageGroup, stream, difficulty, examType, navigate]);
 
   // Timer countdown
   useEffect(() => {
@@ -80,7 +89,7 @@ export default function TestTake() {
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [loading, currentIndex, questions.length]);
+  }, [loading, questions.length, handleNext]);
 
   const handleNext = useCallback(() => {
     if (questions.length === 0) return;
@@ -108,11 +117,11 @@ export default function TestTake() {
           stream,
           qualification: qualification || ageGroup,
           difficulty,
-          challengeId: location.state?.challengeId
+          challengeId: challengeId
         },
       });
     }
-  }, [currentIndex, questions, answers, timeData, questionStartTime]);
+  }, [currentIndex, questions, answers, timeData, questionStartTime, navigate, stream, qualification, ageGroup, difficulty, challengeId]);
 
   const handleMCQAnswer = (option: string) => {
     const newAnswers = [...answers];
@@ -123,11 +132,87 @@ export default function TestTake() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center space-y-4">
-          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
-          <p className="text-lg text-foreground">AI is crafting your unique questions...</p>
-          <p className="text-sm text-muted-foreground">{stream ? `Tailored to ${stream} in ${qualification}` : `Comprehensive Evaluation for ${qualification}`}</p>
+      <div className="min-h-screen bg-[#010101] text-white relative overflow-hidden flex items-center justify-center">
+        {/* Background Effects */}
+        <div className="fixed inset-0 pointer-events-none z-0">
+          <div className="absolute inset-0 bg-[#000000]" />
+          <motion.div
+            animate={{ opacity: [0.15, 0.4, 0.15], scale: [1, 1.2, 1] }}
+            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-yellow-500/10 blur-[150px] rounded-full"
+          />
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 mix-blend-overlay" />
+        </div>
+
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }} 
+          animate={{ opacity: 1, scale: 1 }} 
+          className="relative z-10 text-center space-y-8 max-w-2xl px-4"
+        >
+          {/* Animated Brain Icon */}
+          <motion.div
+            animate={{ 
+              rotate: [0, 5, -5, 0],
+              scale: [1, 1.05, 1]
+            }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            className="relative inline-block"
+          >
+            <div className="absolute inset-0 bg-yellow-500/40 blur-3xl rounded-full animate-pulse" />
+            <Brain className="h-20 w-20 text-yellow-500 relative z-10 drop-shadow-[0_0_30px_rgba(255,191,0,0.9)]" />
+          </motion.div>
+
+          {/* Main Message */}
+          <div className="space-y-4">
+            <h2 className="text-3xl md:text-4xl font-black italic tracking-tight text-white">
+              AI is Compiling Your Paper...
+            </h2>
+            <p className="text-yellow-500/80 text-sm md:text-base font-bold uppercase tracking-[0.3em]">
+              {stream || "All Subjects"} • {qualification}
+            </p>
+            <p className="text-white/40 text-xs md:text-sm font-medium">
+              Difficulty: {difficulty} • 15 Unique Questions
+            </p>
+          </div>
+
+          {/* Progress Animation */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-center gap-2">
+              {[0, 1, 2].map((i) => (
+                <motion.div
+                  key={i}
+                  animate={{ 
+                    scale: [1, 1.5, 1],
+                    opacity: [0.3, 1, 0.3]
+                  }}
+                  transition={{ 
+                    duration: 1.5, 
+                    repeat: Infinity,
+                    delay: i * 0.2
+                  }}
+                  className="w-2 h-2 bg-yellow-500 rounded-full"
+                />
+              ))}
+            </div>
+            
+            {/* Simulated Progress Bar */}
+            <div className="w-full max-w-md mx-auto h-1 bg-white/5 rounded-full overflow-hidden border border-white/10">
+              <motion.div
+                animate={{ width: ["0%", "100%"] }}
+                transition={{ duration: 3, ease: "easeInOut" }}
+                className="h-full bg-gradient-to-r from-yellow-500 to-yellow-600 shadow-[0_0_15px_rgba(255,191,0,0.8)]"
+              />
+            </div>
+          </div>
+
+          {/* Status Messages */}
+          <motion.div
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="text-white/30 text-xs font-black uppercase tracking-[0.5em]"
+          >
+            Neural Network Active
+          </motion.div>
         </motion.div>
       </div>
     );
@@ -199,12 +284,26 @@ export default function TestTake() {
                 {/* Internal Glow */}
                 <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/5 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
 
-                <div className="flex items-center gap-3 mb-8">
+                <div className="flex items-center gap-3 mb-6">
                   <span className="px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-[9px] font-black text-yellow-500 uppercase tracking-widest">{q.type}</span>
                   <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] font-black text-white/40 uppercase tracking-widest">{q.maxPoints} Neural Points</span>
                 </div>
 
-                <h2 className="text-2xl md:text-3xl font-black text-white leading-[1.2] mb-12 italic tracking-tight">
+                {/* Scenario Section - Visually Distinct */}
+                {q.scenario && (
+                  <div className="mb-8 p-6 rounded-2xl bg-white/[0.02] border border-white/5 backdrop-blur-sm">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-1 h-1 bg-yellow-500/60 rounded-full" />
+                      <span className="text-[8px] font-black text-yellow-500/60 uppercase tracking-[0.4em]">Scenario</span>
+                    </div>
+                    <p className="text-white/70 text-sm md:text-base leading-relaxed font-medium">
+                      {q.scenario}
+                    </p>
+                  </div>
+                )}
+
+                {/* Question */}
+                <h2 className="text-xl md:text-2xl font-black text-white leading-[1.3] mb-8 tracking-tight">
                   {q.question}
                 </h2>
 

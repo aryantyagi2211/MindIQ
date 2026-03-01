@@ -77,6 +77,7 @@ export type Field = keyof typeof FIELDS;
 export interface Question {
   id: number;
   type: string;
+  scenario?: string;
   question: string;
   format: "mcq" | "text";
   options?: string[];

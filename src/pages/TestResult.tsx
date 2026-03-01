@@ -15,7 +15,18 @@ export default function TestResult() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { questions, answers, timeData, stream, qualification, difficulty } = (location.state as any) || {};
+  
+  const state = location.state as {
+    questions?: Question[];
+    answers?: string[];
+    timeData?: number[];
+    stream?: string;
+    qualification?: string;
+    difficulty?: string;
+    challengeId?: string;
+  } | null;
+  
+  const { questions, answers, timeData, stream, qualification, difficulty } = state || {};
 
   const [scores, setScores] = useState<any>(null);
   const [percentile, setPercentile] = useState(0);
@@ -49,7 +60,8 @@ export default function TestResult() {
     }
 
     scoreAndSave();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [questions, user, navigate]);
 
   // Count how many test attempts user has
   const [attemptCount, setAttemptCount] = useState(1);
@@ -126,15 +138,17 @@ export default function TestResult() {
               .single();
 
             if (challengeData) {
-              setChallengerScore((challengeData as any).test_results.overall_score);
+              const testResults = challengeData as { test_results: { overall_score: number } };
+              setChallengerScore(testResults.test_results.overall_score);
             }
           }
         }
       }
 
       startReveal(pct);
-    } catch (e: any) {
-      toast.error("Scoring failed: " + e.message);
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : "Unknown error";
+      toast.error("Scoring failed: " + errorMessage);
     }
   };
 
