@@ -127,49 +127,6 @@ export default function Index() {
       <Header />
 
       <main className="relative container pt-24 pb-16 z-10">
-        {/* CENTRAL NEURAL ARC (High Intensity Lightning) */}
-        <div className="hidden lg:block absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-[700px] pointer-events-none z-20">
-          <svg className="w-full h-full overflow-visible" viewBox="0 0 100 700">
-            <defs>
-              <filter id="lightning-glow-heavy">
-                <feGaussianBlur stdDeviation="8" result="blur" />
-                <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-              </filter>
-            </defs>
-
-            {/* Primary Fractal Bolts */}
-            {[...Array(3)].map((_, i) => (
-              <motion.path
-                key={i}
-                d={`M 50 ${Math.random() * 50} L ${40 + Math.random() * 20} 150 L ${20 + Math.random() * 60} 300 L ${70 + Math.random() * 20} 450 L ${30 + Math.random() * 40} 600 L 50 700`}
-                stroke="#FFD700"
-                strokeWidth="2"
-                fill="none"
-                filter="url(#lightning-glow-heavy)"
-                initial={{ pathLength: 0, opacity: 0 }}
-                animate={{
-                  pathLength: [0, 1],
-                  opacity: [0, 1, 0],
-                  strokeWidth: [1.5, 3.5, 1.5]
-                }}
-                transition={{
-                  duration: 0.12,
-                  repeat: Infinity,
-                  repeatDelay: 0.8 + Math.random() * 1.5,
-                  delay: i * 0.3
-                }}
-              />
-            ))}
-
-            {/* Sharp Static Discharge */}
-            <motion.path
-              d="M 50 300 L 20 330 L 80 360 L 50 390"
-              stroke="#FFD700" strokeWidth="2" fill="none" filter="url(#lightning-glow-heavy)"
-              animate={{ opacity: [0, 1, 0], x: [-10, 10, -10] }}
-              transition={{ duration: 0.05, repeat: Infinity, repeatDelay: 1.2 }}
-            />
-          </svg>
-        </div>
 
         <div className="grid lg:grid-cols-2 gap-12 items-center min-h-[80vh] relative z-10">
           {/* Left */}

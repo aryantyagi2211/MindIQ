@@ -161,36 +161,6 @@ export default function TestSetup() {
                   </div>
                 </div>
 
-                {/* Assessment Preview Info */}
-                {canStart && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-6 p-4 rounded-2xl bg-yellow-500/5 border border-yellow-500/10"
-                  >
-                    <div className="space-y-2 text-xs">
-                      <div className="flex items-center justify-between text-white/60">
-                        <span className="font-bold">Questions:</span>
-                        <span className="text-yellow-500 font-black">15 Unique MCQs</span>
-                      </div>
-                      <div className="flex items-center justify-between text-white/60">
-                        <span className="font-bold">Estimated Time:</span>
-                        <span className="text-yellow-500 font-black">
-                          ~{difficulty === "Basic" ? "25" : difficulty === "Standard" ? "30" : "35"} minutes
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-white/60">
-                        <span className="font-bold">Question Type:</span>
-                        <span className="text-yellow-500 font-black">Case Study Based</span>
-                      </div>
-                      <div className="pt-2 border-t border-white/5">
-                        <p className="text-[9px] text-white/40 leading-relaxed">
-                          Each question presents a real-world scenario requiring analysis across 5 cognitive dimensions: Logic, Creativity, Intuition, Emotional Intelligence, and Systems Thinking.
-                        </p>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
               </div>
             </motion.div>
           </div>
