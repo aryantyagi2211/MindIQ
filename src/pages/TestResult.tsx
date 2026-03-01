@@ -7,7 +7,7 @@ import { getTier } from "@/lib/constants";
 import { toast } from "sonner";
 import ResultCard from "@/components/ResultCard";
 import { Button } from "@/components/ui/button";
-import { Share2, Download, Swords, Loader2, BarChart3, Brain } from "lucide-react";
+import { Share2, Download, Swords, Loader2, BarChart3, Brain, CheckCircle2, XCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { toPng } from "html-to-image";
 import Header from "@/components/Header";
 
@@ -467,6 +467,112 @@ export default function TestResult() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* ANSWER REVIEW SECTION */}
+        {phase === "done" && questions && answers && (
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 2.5, duration: 1 }}
+            className="w-full max-w-5xl mt-12 space-y-6"
+          >
+            <div className="flex items-center gap-4 mb-8">
+              <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
+              <h3 className="text-[10px] font-black text-yellow-500 uppercase tracking-[0.5em] whitespace-nowrap">Answer Breakdown</h3>
+              <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
+            </div>
+
+            {/* Summary Cards */}
+            <div className="grid grid-cols-3 gap-4 mb-8">
+              <div className="rounded-2xl border border-white/5 bg-white/[0.02] backdrop-blur-xl p-5 text-center">
+                <p className="text-3xl font-black text-yellow-500 italic">{correctCount}</p>
+                <p className="text-[9px] font-black text-white/30 uppercase tracking-[0.3em] mt-1">Correct</p>
+              </div>
+              <div className="rounded-2xl border border-white/5 bg-white/[0.02] backdrop-blur-xl p-5 text-center">
+                <p className="text-3xl font-black text-red-400 italic">{totalQuestions - correctCount}</p>
+                <p className="text-[9px] font-black text-white/30 uppercase tracking-[0.3em] mt-1">Incorrect</p>
+              </div>
+              <div className="rounded-2xl border border-white/5 bg-white/[0.02] backdrop-blur-xl p-5 text-center">
+                <p className="text-3xl font-black text-white italic">{Math.round((correctCount / totalQuestions) * 100)}%</p>
+                <p className="text-[9px] font-black text-white/30 uppercase tracking-[0.3em] mt-1">Accuracy</p>
+              </div>
+            </div>
+
+            {/* Question-by-question review */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* LEFT: All questions with correct answers */}
+              <div className="rounded-3xl border border-white/5 bg-white/[0.02] backdrop-blur-xl p-6 space-y-3 max-h-[600px] overflow-y-auto">
+                <p className="text-[9px] font-black text-yellow-500/60 uppercase tracking-[0.4em] mb-4">All Correct Answers</p>
+                {questions.map((q, i) => {
+                  const userAns = answers[i] || "";
+                  const isCorrect = userAns === q.correctAnswer;
+                  return (
+                    <div key={i} className={`p-3 rounded-xl border transition-all ${isCorrect ? 'border-green-500/20 bg-green-500/5' : 'border-red-500/20 bg-red-500/5'}`}>
+                      <div className="flex items-start gap-3">
+                        <div className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${isCorrect ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
+                          {isCorrect ? <CheckCircle2 className="w-3 h-3 text-green-400" /> : <XCircle className="w-3 h-3 text-red-400" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] font-black text-white/40 uppercase tracking-wider mb-1">Q{i + 1} • {q.type}</p>
+                          <p className="text-xs font-bold text-white/70 leading-relaxed line-clamp-2">{q.question}</p>
+                          <p className="text-[10px] text-green-400 font-bold mt-1">✓ {q.correctAnswer}</p>
+                          {!isCorrect && userAns && (
+                            <p className="text-[10px] text-red-400/70 font-medium mt-0.5">Your answer: {userAns}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* RIGHT: Detailed breakdown cards */}
+              <div className="space-y-4 max-h-[600px] overflow-y-auto">
+                <p className="text-[9px] font-black text-yellow-500/60 uppercase tracking-[0.4em] mb-4">Detailed Analysis</p>
+                {questions.map((q, i) => {
+                  const userAns = answers[i] || "";
+                  const isCorrect = userAns === q.correctAnswer;
+                  return (
+                    <div key={i} className="rounded-2xl border border-white/5 bg-white/[0.02] backdrop-blur-xl p-5 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-[8px] font-black text-yellow-500 uppercase tracking-widest">{q.type}</span>
+                          <span className="text-[10px] font-black text-white/30">Q{i + 1}</span>
+                        </div>
+                        {isCorrect ? (
+                          <span className="px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20 text-[8px] font-black text-green-400 uppercase tracking-wider">Correct</span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/20 text-[8px] font-black text-red-400 uppercase tracking-wider">Incorrect</span>
+                        )}
+                      </div>
+                      <p className="text-xs font-bold text-white/60 leading-relaxed">{q.question}</p>
+                      <div className="space-y-1.5">
+                        {(q.options || []).map((opt, j) => {
+                          const isUserChoice = opt === userAns;
+                          const isCorrectOpt = opt === q.correctAnswer;
+                          return (
+                            <div key={j} className={`px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-2 ${
+                              isCorrectOpt ? 'bg-green-500/10 border border-green-500/20 text-green-400' :
+                              isUserChoice && !isCorrectOpt ? 'bg-red-500/10 border border-red-500/20 text-red-400' :
+                              'bg-white/[0.02] border border-white/5 text-white/30'
+                            }`}>
+                              <span className="w-5 h-5 rounded flex items-center justify-center text-[9px] font-black border border-current/20">
+                                {String.fromCharCode(65 + j)}
+                              </span>
+                              <span className="flex-1">{opt}</span>
+                              {isCorrectOpt && <CheckCircle2 className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />}
+                              {isUserChoice && !isCorrectOpt && <XCircle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </motion.div>
+        )}
       </main>
 
       <style>{`
