@@ -11,15 +11,15 @@ interface RequestBody {
   examType?: string;
 }
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-      },
-    });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
@@ -28,7 +28,7 @@ serve(async (req: Request) => {
     if (!qualification || !difficulty) {
       return new Response(
         JSON.stringify({ error: "Missing required parameters" }),
-        { status: 400, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -174,7 +174,7 @@ DO NOT include markdown, explanations, or anything else.`;
       console.error("Groq API Error:", errorText);
       return new Response(
         JSON.stringify({ error: "Failed to generate questions from AI" }),
-        { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -184,7 +184,7 @@ DO NOT include markdown, explanations, or anything else.`;
     if (!content) {
       return new Response(
         JSON.stringify({ error: "No content received from AI" }),
-        { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -203,7 +203,7 @@ DO NOT include markdown, explanations, or anything else.`;
     if (!Array.isArray(questions) || questions.length === 0) {
       return new Response(
         JSON.stringify({ error: "Invalid question format received" }),
-        { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -224,10 +224,7 @@ DO NOT include markdown, explanations, or anything else.`;
       JSON.stringify({ questions: validatedQuestions }),
       { 
         status: 200, 
-        headers: { 
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*"
-        } 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
       }
     );
 
@@ -236,7 +233,7 @@ DO NOT include markdown, explanations, or anything else.`;
     const errorMessage = error instanceof Error ? error.message : "Internal server error";
     return new Response(
       JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
