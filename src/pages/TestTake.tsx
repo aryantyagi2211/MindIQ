@@ -76,21 +76,6 @@ export default function TestTake() {
     fetchQuestions();
   }, [qualification, ageGroup, stream, difficulty, examType, navigate]);
 
-  // Timer countdown
-  useEffect(() => {
-    if (loading || questions.length === 0) return;
-    const interval = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          handleNext();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [loading, questions.length, handleNext]);
-
   const handleNext = useCallback(() => {
     if (questions.length === 0) return;
     const timeTaken = Math.round((Date.now() - questionStartTime) / 1000);
@@ -122,6 +107,21 @@ export default function TestTake() {
       });
     }
   }, [currentIndex, questions, answers, timeData, questionStartTime, navigate, stream, qualification, ageGroup, difficulty, challengeId]);
+
+  // Timer countdown
+  useEffect(() => {
+    if (loading || questions.length === 0) return;
+    const interval = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          handleNext();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [loading, questions.length, handleNext]);
 
   const handleMCQAnswer = (option: string) => {
     const newAnswers = [...answers];
