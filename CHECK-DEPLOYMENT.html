@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✅ Check Lovable Deployment</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            color: #fff;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #fbbf24;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+        }
+        .subtitle {
+            text-align: center;
+            color: #9ca3af;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        .test-button {
+            display: block;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            color: #000;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.3em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 20px rgba(251, 191, 36, 0.3);
+        }
+        .test-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 30px rgba(251, 191, 36, 0.5);
+        }
+        .test-button:active {
+            transform: translateY(0);
+        }
+        .status-box {
+            background: #1f2937;
+            border: 2px solid #374151;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+        .status-box.success {
+            border-color: #10b981;
+            background: linear-gradient(135deg, #064e3b 0%, #1f2937 100%);
+        }
+        .status-box.error {
+            border-color: #ef4444;
+            background: linear-gradient(135deg, #7f1d1d 0%, #1f2937 100%);
+        }
+        .status-box.warning {
+            border-color: #f59e0b;
+            background: linear-gradient(135deg, #78350f 0%, #1f2937 100%);
+        }
+        .check-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            margin: 10px 0;
+            background: #111827;
+            border-radius: 8px;
+            border-left: 4px solid #374151;
+        }
+        .check-item.pass {
+            border-left-color: #10b981;
+        }
+        .check-item.fail {
+            border-left-color: #ef4444;
+        }
+        .check-icon {
+            font-size: 1.5em;
+            margin-right: 15px;
+            min-width: 30px;
+        }
+        .check-label {
+            flex: 1;
+            font-weight: 600;
+        }
+        .check-value {
+            color: #9ca3af;
+            font-family: 'Courier New', monospace;
+        }
+        .result-section {
+            display: none;
+        }
+        .result-section.show {
+            display: block;
+        }
+        .code-block {
+            background: #000;
+            border: 1px solid #374151;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .verdict {
+            text-align: center;
+            padding: 30px;
+            margin: 20px 0;
+            border-radius: 12px;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        .verdict.success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: #fff;
+        }
+        .verdict.fail {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: #fff;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+        .spinner {
+            border: 4px solid #374151;
+            border-top: 4px solid #fbbf24;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .instruction {
+            background: #1f2937;
+            border-left: 4px solid #3b82f6;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .instruction h3 {
+            color: #3b82f6;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✅ Deployment Checker</h1>
+        <p class="subtitle">Check if Lovable has deployed the new edge function code</p>
+
+        <button class="test-button" onclick="runTest()">
+            🧪 Test API Deployment
+        </button>
+
+        <div class="instruction">
+            <h3>📋 What This Test Checks:</h3>
+            <ul style="margin-left: 20px; line-height: 1.8;">
+                <li>✅ Are questions about <strong>Mathematics</strong>?</li>
+                <li>✅ Do questions have <strong>4 MCQ options</strong>?</li>
+                <li>✅ Is the format <strong>"mcq"</strong> (not "text")?</li>
+                <li>✅ Do questions have <strong>scenarios</strong>?</li>
+                <li>✅ Are questions appropriate for <strong>Secondary School</strong>?</li>
+            </ul>
+        </div>
+
+        <div id="result" class="result-section"></div>
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+        const SUPABASE_URL = 'https://vertjjkacwtfjliwckrf.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlcnRqamthY3d0ZmpsaXdja3JmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4NjI3NjEsImV4cCI6MjA4NzQzODc2MX0.I_50vXtkmZALKxYUpFEvR5kAWyWaTOCSvIko95m6HXw';
+
+        const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        window.runTest = async function() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = 'result-section show';
+            resultDiv.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Testing API... This may take 5-10 seconds</p>
+                    <p style="color: #9ca3af; margin-top: 10px;">Calling generate-questions with Mathematics config...</p>
+                </div>
+            `;
+
+            try {
+                const startTime = Date.now();
+                
+                const { data, error } = await supabase.functions.invoke('generate-questions', {
+                    body: {
+                        qualification: 'Secondary School',
+                        difficulty: 'Basic',
+                        stream: 'Mathematics',
+                        examType: 'mcq'
+                    }
+                });
+
+                const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+
+                if (error) {
+                    resultDiv.innerHTML = `
+                        <div class="status-box error">
+                            <h2>❌ API Error</h2>
+                            <p>Duration: ${duration}s</p>
+                            <div class="code-block">${JSON.stringify(error, null, 2)}</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                if (data.error) {
+                    resultDiv.innerHTML = `
+                        <div class="status-box error">
+                            <h2>❌ Function Error</h2>
+                            <p>Duration: ${duration}s</p>
+                            <div class="code-block">${data.error}</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Analyze the response
+                const checks = [];
+                let passCount = 0;
+                const totalChecks = 8;
+
+                if (data.questions && Array.isArray(data.questions)) {
+                    checks.push({
+                        pass: true,
+                        label: 'Questions Array',
+                        value: `${data.questions.length} questions received`
+                    });
+                    passCount++;
+
+                    const q1 = data.questions[0];
+                    if (q1) {
+                        // Check 1: Has Options
+                        const hasOptions = q1.options && Array.isArray(q1.options) && q1.options.length === 4;
+                        checks.push({
+                            pass: hasOptions,
+                            label: 'Has 4 MCQ Options',
+                            value: hasOptions ? `✅ YES (${q1.options.length} options)` : '❌ NO - Missing options array!'
+                        });
+                        if (hasOptions) passCount++;
+
+                        // Check 2: Format is MCQ
+                        const isMCQ = q1.format === 'mcq';
+                        checks.push({
+                            pass: isMCQ,
+                            label: 'Format is MCQ',
+                            value: isMCQ ? '✅ "mcq"' : `❌ "${q1.format}" (should be "mcq")`
+                        });
+                        if (isMCQ) passCount++;
+
+                        // Check 3: Has Scenario
+                        const hasScenario = q1.scenario && q1.scenario.length > 50;
+                        checks.push({
+                            pass: hasScenario,
+                            label: 'Has Scenario',
+                            value: hasScenario ? `✅ YES (${q1.scenario.length} chars)` : '❌ NO or too short'
+                        });
+                        if (hasScenario) passCount++;
+
+                        // Check 4: Mathematics Keywords
+                        const questionText = (q1.scenario || '') + ' ' + (q1.question || '');
+                        const mathKeywords = ['math', 'number', 'calculate', 'equation', 'solve', 'algebra', 'geometry', 'arithmetic', 'fraction', 'decimal', 'percentage', 'area', 'volume', 'perimeter', 'digit', 'sum', 'product', 'quotient', 'remainder', 'rupee', 'rs', 'meter', 'cm', 'kg'];
+                        const hasMathKeywords = mathKeywords.some(keyword => questionText.toLowerCase().includes(keyword));
+                        checks.push({
+                            pass: hasMathKeywords,
+                            label: 'Contains Math Keywords',
+                            value: hasMathKeywords ? '✅ YES - Math-related' : '❌ NO - Generic question'
+                        });
+                        if (hasMathKeywords) passCount++;
+
+                        // Check 5: NOT Generic Patterns
+                        const genericPatterns = ['pattern recognition', 'sequence', 'design a new', 'creative divergence', 'ethical reasoning'];
+                        const isGeneric = genericPatterns.some(pattern => (q1.type || '').toLowerCase().includes(pattern) || questionText.toLowerCase().includes(pattern));
+                        checks.push({
+                            pass: !isGeneric,
+                            label: 'NOT Generic Puzzle',
+                            value: !isGeneric ? '✅ Subject-specific' : '❌ Generic reasoning question'
+                        });
+                        if (!isGeneric) passCount++;
+
+                        // Check 6: Has Correct Answer
+                        const hasCorrectAnswer = q1.correctAnswer && q1.correctAnswer.length > 0;
+                        checks.push({
+                            pass: hasCorrectAnswer,
+                            label: 'Has Correct Answer',
+                            value: hasCorrectAnswer ? '✅ YES' : '❌ NO'
+                        });
+                        if (hasCorrectAnswer) passCount++;
+
+                        // Check 7: Appropriate Time Limit
+                        const hasGoodTimeLimit = q1.timeLimit >= 90 && q1.timeLimit <= 150;
+                        checks.push({
+                            pass: hasGoodTimeLimit,
+                            label: 'Appropriate Time Limit',
+                            value: hasGoodTimeLimit ? `✅ ${q1.timeLimit}s` : `⚠️ ${q1.timeLimit}s (expected 90-150s)`
+                        });
+                        if (hasGoodTimeLimit) passCount++;
+                    }
+                } else {
+                    checks.push({
+                        pass: false,
+                        label: 'Questions Array',
+                        value: '❌ NO questions array found!'
+                    });
+                }
+
+                // Generate verdict
+                const isNewCode = passCount >= 6;
+                const verdictClass = isNewCode ? 'success' : 'fail';
+                const verdictText = isNewCode 
+                    ? '🎉 NEW CODE DEPLOYED!' 
+                    : '⚠️ OLD CODE STILL RUNNING';
+                const verdictMessage = isNewCode
+                    ? 'Lovable has successfully deployed the new edge function code!'
+                    : 'Lovable has NOT deployed the new code yet. Please redeploy from Lovable Dashboard.';
+
+                // Build HTML
+                let html = `
+                    <div class="verdict ${verdictClass}">
+                        ${verdictText}
+                    </div>
+                    <div class="status-box ${isNewCode ? 'success' : 'error'}">
+                        <h2>Test Results (${duration}s)</h2>
+                        <p style="margin: 15px 0; font-size: 1.1em;">
+                            Passed: <strong>${passCount}/${totalChecks}</strong> checks
+                        </p>
+                        <p style="color: #9ca3af;">${verdictMessage}</p>
+                    </div>
+
+                    <div class="status-box">
+                        <h3 style="margin-bottom: 15px;">📋 Detailed Checks:</h3>
+                `;
+
+                checks.forEach(check => {
+                    html += `
+                        <div class="check-item ${check.pass ? 'pass' : 'fail'}">
+                            <div class="check-icon">${check.pass ? '✅' : '❌'}</div>
+                            <div class="check-label">${check.label}</div>
+                            <div class="check-value">${check.value}</div>
+                        </div>
+                    `;
+                });
+
+                html += `</div>`;
+
+                // Show first question
+                if (data.questions && data.questions[0]) {
+                    const q1 = data.questions[0];
+                    html += `
+                        <div class="status-box">
+                            <h3 style="margin-bottom: 15px;">📝 First Question Preview:</h3>
+                            <div style="background: #111827; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                                <p><strong>Type:</strong> ${q1.type}</p>
+                                <p><strong>Format:</strong> ${q1.format}</p>
+                                ${q1.scenario ? `<p style="margin-top: 10px;"><strong>Scenario:</strong><br/>${q1.scenario.substring(0, 200)}...</p>` : ''}
+                                <p style="margin-top: 10px;"><strong>Question:</strong><br/>${q1.question}</p>
+                                ${q1.options ? `
+                                    <p style="margin-top: 10px;"><strong>Options:</strong></p>
+                                    <ul style="margin-left: 20px;">
+                                        ${q1.options.map((opt, i) => `<li>${String.fromCharCode(65 + i)}) ${opt}</li>`).join('')}
+                                    </ul>
+                                ` : '<p style="color: #ef4444; margin-top: 10px;">❌ NO OPTIONS!</p>'}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Show raw JSON
+                html += `
+                    <div class="status-box">
+                        <h3 style="margin-bottom: 15px;">🔍 Raw API Response:</h3>
+                        <div class="code-block">${JSON.stringify(data.questions[0], null, 2)}</div>
+                    </div>
+                `;
+
+                // Show action needed
+                if (!isNewCode) {
+                    html += `
+                        <div class="status-box error">
+                            <h3>⚠️ Action Required:</h3>
+                            <ol style="margin: 15px 0 15px 20px; line-height: 2;">
+                                <li>Go to your <strong>Lovable Dashboard</strong></li>
+                                <li>Find <strong>Edge Functions</strong> section</li>
+                                <li>Click <strong>Redeploy</strong> on <code>generate-questions</code></li>
+                                <li>Wait <strong>3-5 minutes</strong></li>
+                                <li>Run this test again</li>
+                            </ol>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="status-box success">
+                            <h3>✅ Next Steps:</h3>
+                            <ol style="margin: 15px 0 15px 20px; line-height: 2;">
+                                <li>Clear your browser cache (Ctrl+Shift+Delete)</li>
+                                <li>Go to <strong>http://localhost:8080/test/setup</strong></li>
+                                <li>Select <strong>Mathematics, Secondary School, Basic</strong></li>
+                                <li>Click <strong>"ASSESSMENT PAPER"</strong></li>
+                                <li>You should now see proper Mathematics questions with options!</li>
+                            </ol>
+                        </div>
+                    `;
+                }
+
+                resultDiv.innerHTML = html;
+
+            } catch (err) {
+                resultDiv.innerHTML = `
+                    <div class="status-box error">
+                        <h2>❌ Exception</h2>
+                        <div class="code-block">${err.message}\n\n${err.stack}</div>
+                    </div>
+                `;
+            }
+        };
+    </script>
+</body>
+</html>

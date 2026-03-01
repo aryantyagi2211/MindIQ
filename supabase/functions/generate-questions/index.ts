@@ -112,7 +112,44 @@ REQUIRED FOR ${stream || "MATHEMATICS"}:
 
 Return ONLY valid JSON with 15 complete questions. NO markdown, NO explanations.`;
 
-    const fullPrompt = `${contextualRules}\n\n${outputRules}\n\nGenerate 15 unique MCQ case-study questions for ${qualification} level${stream ? ` SPECIFICALLY about ${stream} subject` : ""} at ${difficulty} difficulty. Remember: ALL questions must be about ${stream || "academic subjects"}, not generic reasoning puzzles.`;
+    const fullPrompt = `YOU MUST FOLLOW THESE INSTRUCTIONS EXACTLY:
+
+${contextualRules}
+
+${outputRules}
+
+FINAL INSTRUCTIONS - READ CAREFULLY:
+Generate EXACTLY 15 questions for ${qualification} level at ${difficulty} difficulty.
+${stream ? `EVERY SINGLE QUESTION MUST BE ABOUT ${stream.toUpperCase()} - NOT generic puzzles!` : ''}
+
+ABSOLUTELY FORBIDDEN QUESTION TYPES:
+- "Identify the next item in the sequence" - FORBIDDEN
+- "Design a new mode of transportation" - FORBIDDEN  
+- "If all cats are animals" - FORBIDDEN
+- "Which of the following statements is a valid conclusion" - FORBIDDEN
+- Any pattern recognition without ${stream || 'subject'} context - FORBIDDEN
+- Any creative divergence not about ${stream || 'subject'} - FORBIDDEN
+- Any ethical reasoning not about ${stream || 'subject'} - FORBIDDEN
+
+${stream === 'Mathematics' ? `
+REQUIRED FOR MATHEMATICS:
+- Use NUMBERS and CALCULATIONS in EVERY question
+- Include Rs., meters, kg, or other units
+- Test arithmetic, algebra, or geometry
+- Example: "A shopkeeper bought 144 pencils for Rs. 1,440..."
+- Example: "A rectangular field is 50 meters long..."
+- Example: "If 3 apples cost Rs. 45, how much do 7 apples cost?"
+` : ''}
+
+YOU MUST RETURN VALID JSON WITH 15 QUESTIONS.
+EACH QUESTION MUST HAVE:
+- "options": ["opt1", "opt2", "opt3", "opt4"] (ARRAY OF 4 STRINGS)
+- "format": "mcq" (NOT "text")
+- "scenario": "3-5 sentence ${stream || 'subject'}-specific scenario"
+- All other required fields
+
+START YOUR RESPONSE WITH: {"questions":[
+DO NOT include markdown, explanations, or anything else.`;
 
     // Call Groq API
     const groqResponse = await fetch(GROQ_API_URL, {
