@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Edge Functions</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .test-box {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        button {
+            background: #fbbf24;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 5px;
+        }
+        button:hover {
+            background: #f59e0b;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            background: #1a1a1a;
+            border-radius: 6px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .success { border-left: 4px solid #10b981; }
+        .error { border-left: 4px solid #ef4444; }
+        .loading { border-left: 4px solid #fbbf24; }
+        h1 { color: #fbbf24; }
+        h2 { color: #60a5fa; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Edge Functions Test</h1>
+    <p>Use this page to test if your edge functions are working.</p>
+
+    <div class="test-box">
+        <h2>1. Test generate-questions Function</h2>
+        <button onclick="testGenerateQuestions()">Test Question Generation</button>
+        <div id="generate-result" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="test-box">
+        <h2>2. Test score-answers Function</h2>
+        <button onclick="testScoreAnswers()">Test Scoring</button>
+        <div id="score-result" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="test-box">
+        <h2>3. Check Environment</h2>
+        <button onclick="checkEnvironment()">Check Setup</button>
+        <div id="env-result" class="result" style="display:none;"></div>
+    </div>
+
+    <script type="module">
+        // Import Supabase client
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+        const SUPABASE_URL = 'https://vertjjkacwtfjliwckrf.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlcnRqamthY3d0ZmpsaXdja3JmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4NjI3NjEsImV4cCI6MjA4NzQzODc2MX0.I_50vXtkmZALKxYUpFEvR5kAWyWaTOCSvIko95m6HXw';
+
+        const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        window.testGenerateQuestions = async function() {
+            const resultDiv = document.getElementById('generate-result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result loading';
+            resultDiv.textContent = '⏳ Testing question generation...\n\nCalling edge function...';
+
+            try {
+                const startTime = Date.now();
+                
+                const { data, error } = await supabase.functions.invoke('generate-questions', {
+                    body: {
+                        qualification: 'High School',
+                        difficulty: 'Standard',
+                        stream: 'Physics',
+                        examType: 'mcq'
+                    }
+                });
+
+                const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+
+                if (error) {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ ERROR (${duration}s)\n\n${JSON.stringify(error, null, 2)}`;
+                    return;
+                }
+
+                if (data.error) {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ API ERROR (${duration}s)\n\n${data.error}`;
+                    return;
+                }
+
+                if (data.questions && data.questions.length > 0) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✅ SUCCESS (${duration}s)\n\nGenerated ${data.questions.length} questions!\n\nFirst question:\n${JSON.stringify(data.questions[0], null, 2)}`;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ NO QUESTIONS (${duration}s)\n\n${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (err) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ EXCEPTION\n\n${err.message}\n\n${err.stack}`;
+            }
+        };
+
+        window.testScoreAnswers = async function() {
+            const resultDiv = document.getElementById('score-result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result loading';
+            resultDiv.textContent = '⏳ Testing scoring...\n\nCalling edge function...';
+
+            try {
+                const startTime = Date.now();
+
+                // Mock data for testing
+                const mockQuestions = [
+                    {
+                        id: 1,
+                        type: 'Logic',
+                        question: 'Test question?',
+                        options: ['A', 'B', 'C', 'D'],
+                        correctAnswer: 'A'
+                    }
+                ];
+
+                const { data, error } = await supabase.functions.invoke('score-answers', {
+                    body: {
+                        questions: mockQuestions,
+                        answers: ['A'],
+                        timeData: [60],
+                        stream: 'Physics',
+                        qualification: 'High School'
+                    }
+                });
+
+                const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+
+                if (error) {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ ERROR (${duration}s)\n\n${JSON.stringify(error, null, 2)}`;
+                    return;
+                }
+
+                if (data.error) {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ API ERROR (${duration}s)\n\n${data.error}`;
+                    return;
+                }
+
+                if (data.scores) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✅ SUCCESS (${duration}s)\n\nScores:\n${JSON.stringify(data.scores, null, 2)}`;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ NO SCORES (${duration}s)\n\n${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (err) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ EXCEPTION\n\n${err.message}\n\n${err.stack}`;
+            }
+        };
+
+        window.checkEnvironment = function() {
+            const resultDiv = document.getElementById('env-result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result success';
+            
+            const info = {
+                'Supabase URL': SUPABASE_URL,
+                'Supabase Key': SUPABASE_KEY.substring(0, 20) + '...',
+                'Browser': navigator.userAgent,
+                'Current URL': window.location.href,
+                'Timestamp': new Date().toISOString()
+            };
+
+            resultDiv.textContent = '✅ ENVIRONMENT\n\n' + JSON.stringify(info, null, 2);
+        };
+    </script>
+</body>
+</html>

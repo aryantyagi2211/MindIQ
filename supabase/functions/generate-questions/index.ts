@@ -60,38 +60,57 @@ Generate questions that test cognitive abilities through ${stream || "academic"}
 4. Emotional Intelligence - Real-world ${stream || "subject"} applications
 5. Systems Thinking - Understanding interconnected ${stream || "subject"} concepts`;
 
-    const outputRules = `STRICT OUTPUT RULES:
-- Exactly 15 questions ALL about ${stream || "academic subjects"}
-- All MCQ (Multiple Choice Questions) with exactly 4 options
-- Each question MUST start with a 3+ sentence scenario about ${stream || "the subject"}
-- The scenario should involve ${stream || "subject"}-specific concepts, problems, or situations
-- After the scenario, ask a clear question testing ${stream || "subject"} understanding
-- All 4 options must be plain text answers related to ${stream || "the subject"}
-- correctAnswer must EXACTLY match one of the 4 options (character-by-character)
-- Questions should test ${stream || "subject"} understanding, application, and analysis
-- Distribute questions across all 5 cognitive dimensions BUT keep them ${stream || "subject"}-focused
-- Each question should have a timeLimit (90-150 seconds based on difficulty)
-- Each question worth 10 maxPoints
+    const outputRules = `STRICT OUTPUT RULES - FOLLOW EXACTLY:
 
-EXAMPLE for ${stream || "Mathematics"}:
+CRITICAL REQUIREMENTS:
+1. Exactly 15 questions - ALL about ${stream || "academic subjects"}
+2. EVERY question MUST have exactly 4 options in an array
+3. EVERY question MUST be MCQ format
+4. NO questions without options - this causes errors
+5. ALL questions must be about ${stream || "the subject"} - NO generic puzzles
+
+QUESTION STRUCTURE (MANDATORY):
+{
+  "id": number,
+  "type": "Logic" | "Creativity" | "Intuition" | "Emotional Intelligence" | "Systems Thinking",
+  "scenario": "3-5 sentence ${stream || "subject"}-specific scenario",
+  "question": "Clear question about the scenario",
+  "format": "mcq",
+  "options": ["Option 1", "Option 2", "Option 3", "Option 4"],  // MUST BE ARRAY OF 4 STRINGS
+  "correctAnswer": "Option 1",  // MUST MATCH ONE OPTION EXACTLY
+  "timeLimit": 90-150,
+  "maxPoints": 10
+}
+
+EXAMPLE FOR MATHEMATICS (Secondary School, Basic):
 {
   "id": 1,
   "type": "Logic",
-  "scenario": "A farmer has a rectangular field that is 50 meters long and 30 meters wide. He wants to increase the area by 20% by adding equal strips of land along the length and width. The cost of land is $100 per square meter.",
-  "question": "If the farmer adds strips of width 'x' meters to both dimensions, which equation correctly represents the new area?",
+  "scenario": "A shopkeeper bought 144 pencils for Rs. 1,440. He sold 100 pencils at Rs. 12 each and the remaining pencils at Rs. 15 each. Calculate his total profit or loss.",
+  "question": "What is the shopkeeper's total profit?",
   "format": "mcq",
-  "options": [
-    "(50 + x)(30 + x) = 1800",
-    "(50 + x)(30 + x) = 1500",
-    "(50 + 2x)(30 + 2x) = 1800",
-    "50x + 30x = 300"
-  ],
-  "correctAnswer": "(50 + x)(30 + x) = 1800",
+  "options": ["Rs. 300", "Rs. 360", "Rs. 420", "Rs. 480"],
+  "correctAnswer": "Rs. 360",
   "timeLimit": 120,
   "maxPoints": 10
 }
 
-Return ONLY valid JSON in this exact format with 15 ${stream || "subject"}-specific questions.`;
+FORBIDDEN:
+- Questions without options array
+- Generic reasoning puzzles not about ${stream || "the subject"}
+- Questions like "Design a transportation system" (too generic)
+- Questions like "If all cats are animals" (logic puzzles, not ${stream || "subject"})
+- Empty options arrays
+- Options that are not strings
+
+REQUIRED FOR ${stream || "MATHEMATICS"}:
+- Use numbers, calculations, equations
+- Include word problems with numerical answers
+- Test arithmetic, algebra, geometry concepts
+- Age-appropriate for ${qualification} level
+- ${difficulty} difficulty means: ${difficulty === 'Basic' ? 'straightforward calculations' : difficulty === 'Standard' ? 'multi-step problems' : 'complex reasoning'}
+
+Return ONLY valid JSON with 15 complete questions. NO markdown, NO explanations.`;
 
     const fullPrompt = `${contextualRules}\n\n${outputRules}\n\nGenerate 15 unique MCQ case-study questions for ${qualification} level${stream ? ` SPECIFICALLY about ${stream} subject` : ""} at ${difficulty} difficulty. Remember: ALL questions must be about ${stream || "academic subjects"}, not generic reasoning puzzles.`;
 
