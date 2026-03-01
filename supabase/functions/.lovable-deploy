@@ -1,0 +1,12 @@
+# Force Lovable to redeploy edge functions
+# Last updated: 2026-03-02
+# Version: 2.0.0
+
+This file triggers Lovable to redeploy the edge functions.
+The generate-questions function has been completely rewritten to:
+1. Generate subject-specific questions (Mathematics, Physics, etc.)
+2. Always include 4 MCQ options
+3. Prevent generic reasoning puzzles
+4. Use proper JSON format
+
+CRITICAL: The deployed version must match the code in this repository!
