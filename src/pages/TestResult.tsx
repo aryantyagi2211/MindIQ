@@ -16,8 +16,20 @@ export default function TestResult() {
   const navigate = useNavigate();
   const { user } = useAuth();
   
+  interface QuestionItem {
+    id: number;
+    type: string;
+    scenario: string;
+    question: string;
+    format: string;
+    options: string[];
+    correctAnswer: string;
+    timeLimit: number;
+    maxPoints: number;
+  }
+
   const state = location.state as {
-    questions?: Question[];
+    questions?: QuestionItem[];
     answers?: string[];
     timeData?: number[];
     stream?: string;
@@ -138,7 +150,7 @@ export default function TestResult() {
               .single();
 
             if (challengeData) {
-              const testResults = challengeData as { test_results: { overall_score: number } };
+              const testResults = challengeData as unknown as { test_results: { overall_score: number } };
               setChallengerScore(testResults.test_results.overall_score);
             }
           }
