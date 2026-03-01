@@ -33,56 +33,67 @@ serve(async (req: Request) => {
     }
 
     // Build the AI prompt
-    const systemRole = `You are a Senior Academic Examiner with 20 years of experience.
+    const systemRole = `You are a Senior Academic Examiner with 20 years of experience specializing in ${stream || "comprehensive academic assessment"}.
 You author questions that appear in leading educational journals worldwide.
 Your output is exclusively raw JSON — no markdown, no commentary, no explanations.`;
 
-    const contextualRules = `Subject: ${stream || "All Subjects"}
+    const subjectFocus = stream 
+      ? `CRITICAL: ALL 15 questions MUST be directly related to ${stream} subject matter.
+Every question must test ${stream} concepts, principles, or applications.
+Use ${stream}-specific terminology, scenarios, and problems.
+DO NOT create generic logic or reasoning questions - they must be ${stream}-focused.`
+      : `Create questions across multiple academic subjects appropriate for ${qualification} level.`;
+
+    const contextualRules = `Subject Focus: ${stream || "All Subjects"}
 Level: ${qualification}
 Difficulty Mode:
-- Basic → Real scenarios from NCERT/Cambridge textbooks with straightforward application
-- Standard → Same concepts with modified variables requiring analysis and reasoning
-- Competitive → Novel, unseen situations requiring advanced reasoning and critical thinking
+- Basic → Real scenarios from NCERT/Cambridge textbooks with straightforward ${stream || "subject"} application
+- Standard → Same ${stream || "subject"} concepts with modified variables requiring analysis
+- Competitive → Novel ${stream || "subject"} situations requiring advanced reasoning
 
-Generate questions that test cognitive abilities across 5 dimensions:
-1. Logic - Deductive/inductive reasoning in cause-effect scenarios
-2. Creativity - Ability to pick novel, non-obvious answers in ambiguous scenarios
-3. Intuition - Pattern recognition and instinct-based decision making
-4. Emotional Intelligence - Empathy/ethical judgment in people-centered scenarios
-5. Systems Thinking - Understanding of interconnected consequences`;
+${subjectFocus}
+
+Generate questions that test cognitive abilities through ${stream || "academic"} content:
+1. Logic - Deductive/inductive reasoning using ${stream || "subject"} principles
+2. Creativity - Novel problem-solving in ${stream || "subject"} contexts
+3. Intuition - Pattern recognition in ${stream || "subject"} scenarios
+4. Emotional Intelligence - Real-world ${stream || "subject"} applications
+5. Systems Thinking - Understanding interconnected ${stream || "subject"} concepts`;
 
     const outputRules = `STRICT OUTPUT RULES:
-- Exactly 15 questions
+- Exactly 15 questions ALL about ${stream || "academic subjects"}
 - All MCQ (Multiple Choice Questions) with exactly 4 options
-- Each question MUST start with a 3+ sentence scenario narrative that sets up a real-world context
-- The scenario should be detailed, engaging, and relevant to ${qualification} level
-- After the scenario, ask a clear question that requires analysis of the scenario
-- All 4 options must be plain text (no formulas, no sequences, no fill-in-the-blank)
+- Each question MUST start with a 3+ sentence scenario about ${stream || "the subject"}
+- The scenario should involve ${stream || "subject"}-specific concepts, problems, or situations
+- After the scenario, ask a clear question testing ${stream || "subject"} understanding
+- All 4 options must be plain text answers related to ${stream || "the subject"}
 - correctAnswer must EXACTLY match one of the 4 options (character-by-character)
-- No arithmetic sequences, no pattern completion, no direct definitions
-- Questions should test understanding, application, and analysis - not just recall
-- Distribute questions across all 5 cognitive dimensions
+- Questions should test ${stream || "subject"} understanding, application, and analysis
+- Distribute questions across all 5 cognitive dimensions BUT keep them ${stream || "subject"}-focused
 - Each question should have a timeLimit (90-150 seconds based on difficulty)
 - Each question worth 10 maxPoints
 
-Return ONLY valid JSON in this exact format:
+EXAMPLE for ${stream || "Mathematics"}:
 {
-  "questions": [
-    {
-      "id": 1,
-      "type": "Logic",
-      "scenario": "Three to five sentence real-world scenario here...",
-      "question": "Based on the scenario above, what is the most appropriate conclusion?",
-      "format": "mcq",
-      "options": ["Option A text", "Option B text", "Option C text", "Option D text"],
-      "correctAnswer": "Option A text",
-      "timeLimit": 120,
-      "maxPoints": 10
-    }
-  ]
-}`;
+  "id": 1,
+  "type": "Logic",
+  "scenario": "A farmer has a rectangular field that is 50 meters long and 30 meters wide. He wants to increase the area by 20% by adding equal strips of land along the length and width. The cost of land is $100 per square meter.",
+  "question": "If the farmer adds strips of width 'x' meters to both dimensions, which equation correctly represents the new area?",
+  "format": "mcq",
+  "options": [
+    "(50 + x)(30 + x) = 1800",
+    "(50 + x)(30 + x) = 1500",
+    "(50 + 2x)(30 + 2x) = 1800",
+    "50x + 30x = 300"
+  ],
+  "correctAnswer": "(50 + x)(30 + x) = 1800",
+  "timeLimit": 120,
+  "maxPoints": 10
+}
 
-    const fullPrompt = `${contextualRules}\n\n${outputRules}\n\nGenerate 15 unique MCQ case-study questions for ${qualification} level${stream ? ` focusing on ${stream}` : ""} at ${difficulty} difficulty.`;
+Return ONLY valid JSON in this exact format with 15 ${stream || "subject"}-specific questions.`;
+
+    const fullPrompt = `${contextualRules}\n\n${outputRules}\n\nGenerate 15 unique MCQ case-study questions for ${qualification} level${stream ? ` SPECIFICALLY about ${stream} subject` : ""} at ${difficulty} difficulty. Remember: ALL questions must be about ${stream || "academic subjects"}, not generic reasoning puzzles.`;
 
     // Call Groq API
     const groqResponse = await fetch(GROQ_API_URL, {
