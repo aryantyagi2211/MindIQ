@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Swords, Zap, ChevronRight, User, Shield } from "lucide-react";
+import { Swords, ChevronRight, User, Shield, Users } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { FIELDS, SCHOOL_FIELDS, QUALIFICATIONS, DIFFICULTIES, isSchoolLevel, type Qualification } from "@/lib/constants";
+import { FIELDS } from "@/lib/constants";
 import { toast } from "sonner";
 
 export default function BattleArena() {
@@ -14,8 +14,24 @@ export default function BattleArena() {
   const [subfield, setSubfield] = useState("");
   const [difficulty, setDifficulty] = useState("Standard");
   const [searching, setSearching] = useState(false);
+  const [activePlayers, setActivePlayers] = useState(0);
 
   const subfields = (FIELDS as any)[field] || [];
+
+  // Fetch active player count
+  useEffect(() => {
+    const fetchCount = async () => {
+      const { count } = await supabase
+        .from("battles")
+        .select("*", { count: "exact", head: true })
+        .in("status", ["waiting", "matched", "active"]);
+      // Each battle has 1-2 players
+      setActivePlayers((count || 0) * 2);
+    };
+    fetchCount();
+    const interval = setInterval(fetchCount, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleFindBattle = async () => {
     if (!user) {
@@ -31,7 +47,6 @@ export default function BattleArena() {
     setSearching(true);
 
     try {
-      // Look for an existing waiting battle with same field/subfield
       const { data: existing } = await supabase
         .from("battles")
         .select("*")
@@ -43,15 +58,12 @@ export default function BattleArena() {
         .single();
 
       if (existing) {
-        // Join existing battle
         await supabase
           .from("battles")
           .update({ player2_id: user.id, status: "matched" })
           .eq("id", existing.id);
-
         navigate(`/battle/${existing.id}`);
       } else {
-        // Create new battle
         const { data: newBattle, error } = await supabase
           .from("battles")
           .insert({
@@ -93,19 +105,27 @@ export default function BattleArena() {
         <p className="text-[10px] text-white/30 uppercase tracking-[0.4em]">
           Challenge a random opponent • Same questions • One winner
         </p>
+        {/* Live player count */}
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20 mt-2">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+          </span>
+          <Users className="h-3 w-3 text-green-400" />
+          <span className="text-[10px] font-bold text-green-400">
+            {activePlayers} player{activePlayers !== 1 ? "s" : ""} online
+          </span>
+        </div>
       </div>
 
-      {/* VS Display */}
       <div className="max-w-4xl mx-auto">
         <div className="relative rounded-3xl border border-white/5 bg-white/[0.01] backdrop-blur-3xl p-8 overflow-hidden">
-          {/* Background glow */}
           <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 via-transparent to-red-500/5" />
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-yellow-500/30 via-transparent to-red-500/30" />
 
           <div className="relative z-10">
             {/* VS Cards */}
             <div className="grid grid-cols-3 items-center gap-4 mb-8">
-              {/* You */}
               <div className="flex flex-col items-center gap-3">
                 <div className="h-20 w-20 rounded-full border-2 border-yellow-500/30 bg-yellow-500/5 flex items-center justify-center">
                   <User className="h-8 w-8 text-yellow-500/60" />
@@ -114,7 +134,6 @@ export default function BattleArena() {
                 <div className="h-[2px] w-12 bg-yellow-500/30 rounded-full" />
               </div>
 
-              {/* VS */}
               <div className="flex flex-col items-center">
                 <motion.div
                   animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }}
@@ -128,7 +147,6 @@ export default function BattleArena() {
                 </motion.div>
               </div>
 
-              {/* Opponent */}
               <div className="flex flex-col items-center gap-3">
                 <div className="h-20 w-20 rounded-full border-2 border-white/10 bg-white/5 flex items-center justify-center">
                   <span className="text-3xl animate-pulse">?</span>

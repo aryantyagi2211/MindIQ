@@ -3,9 +3,11 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Swords, User, Loader2, Zap } from "lucide-react";
+import { Swords, User, Loader2, Zap, Clock } from "lucide-react";
 import Header from "@/components/Header";
 import { toast } from "sonner";
+
+const TIMEOUT_SECONDS = 30;
 
 export default function BattleMatchmaking() {
   const { battleId } = useParams<{ battleId: string }>();
@@ -15,7 +17,46 @@ export default function BattleMatchmaking() {
   const [opponent, setOpponent] = useState<any>(null);
   const [matched, setMatched] = useState(false);
   const [generatingQuestions, setGeneratingQuestions] = useState(false);
+  const [countdown, setCountdown] = useState(TIMEOUT_SECONDS);
+  const [timedOut, setTimedOut] = useState(false);
   const channelRef = useRef<any>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Countdown timer
+  useEffect(() => {
+    if (matched || timedOut) return;
+
+    setCountdown(TIMEOUT_SECONDS);
+    timerRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current!);
+          setTimedOut(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [matched]);
+
+  // Handle timeout — delete waiting battle and go back
+  useEffect(() => {
+    if (!timedOut || !battleId || !user) return;
+
+    const cleanup = async () => {
+      // Only delete if still waiting (player1 created it)
+      if (battle?.player1_id === user.id && battle?.status === "waiting") {
+        await supabase.from("battles").delete().eq("id", battleId);
+      }
+      toast.error("No opponent found. Try again!");
+      navigate("/");
+    };
+    cleanup();
+  }, [timedOut]);
 
   useEffect(() => {
     if (!battleId || !user) return;
@@ -47,7 +88,6 @@ export default function BattleMatchmaking() {
 
     fetchBattle();
 
-    // Subscribe to battle changes
     const channel = supabase
       .channel(`battle-${battleId}`)
       .on(
@@ -74,7 +114,9 @@ export default function BattleMatchmaking() {
   }, [battleId, user]);
 
   const handleMatched = async (battleData: any) => {
-    // Fetch opponent profile
+    // Stop the timer
+    if (timerRef.current) clearInterval(timerRef.current);
+
     const opponentId = battleData.player1_id === user?.id ? battleData.player2_id : battleData.player1_id;
     const { data: profile } = await supabase
       .from("profiles")
@@ -85,7 +127,6 @@ export default function BattleMatchmaking() {
     setOpponent(profile);
     setMatched(true);
 
-    // If player1, generate questions
     if (battleData.player1_id === user?.id && !battleData.questions) {
       setGeneratingQuestions(true);
       try {
@@ -101,7 +142,6 @@ export default function BattleMatchmaking() {
 
         if (error) throw error;
 
-        // Store questions and set status to active (only 10 questions for battle)
         const battleQuestions = (qData.questions || []).slice(0, 10);
         await supabase
           .from("battles")
@@ -115,7 +155,10 @@ export default function BattleMatchmaking() {
     }
   };
 
-  const isPlayer1 = battle?.player1_id === user?.id;
+  // Timer ring progress
+  const progress = countdown / TIMEOUT_SECONDS;
+  const circumference = 2 * Math.PI * 40;
+  const strokeDashoffset = circumference * (1 - progress);
 
   return (
     <div className="min-h-screen bg-[#010101] text-white relative overflow-hidden font-sans select-none">
@@ -139,7 +182,6 @@ export default function BattleMatchmaking() {
         <div className="max-w-2xl w-full text-center space-y-12">
           {/* VS Cards */}
           <div className="grid grid-cols-3 items-center gap-6">
-            {/* You */}
             <motion.div
               initial={{ x: -50, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
@@ -151,7 +193,6 @@ export default function BattleMatchmaking() {
               <span className="text-lg font-black text-white uppercase tracking-wider">You</span>
             </motion.div>
 
-            {/* VS */}
             <motion.div
               animate={{ scale: [1, 1.15, 1] }}
               transition={{ duration: 2, repeat: Infinity }}
@@ -163,7 +204,6 @@ export default function BattleMatchmaking() {
               </div>
             </motion.div>
 
-            {/* Opponent */}
             <motion.div
               initial={{ x: 50, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
@@ -201,15 +241,37 @@ export default function BattleMatchmaking() {
             </motion.div>
           </div>
 
-          {/* Status */}
+          {/* Status + Timer */}
           <div className="space-y-4">
             {!matched ? (
               <motion.div
-                animate={{ opacity: [0.5, 1, 0.5] }}
+                animate={{ opacity: [0.7, 1, 0.7] }}
                 transition={{ duration: 2, repeat: Infinity }}
-                className="space-y-3"
+                className="space-y-4"
               >
-                <Loader2 className="h-8 w-8 text-yellow-500 animate-spin mx-auto" />
+                {/* Countdown ring */}
+                <div className="relative w-24 h-24 mx-auto">
+                  <svg className="w-full h-full -rotate-90" viewBox="0 0 96 96">
+                    <circle cx="48" cy="48" r="40" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="4" />
+                    <circle
+                      cx="48" cy="48" r="40" fill="none"
+                      stroke={countdown <= 10 ? "#ef4444" : "#eab308"}
+                      strokeWidth="4"
+                      strokeLinecap="round"
+                      strokeDasharray={circumference}
+                      strokeDashoffset={strokeDashoffset}
+                      className="transition-all duration-1000 ease-linear"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className={`text-2xl font-black tabular-nums ${countdown <= 10 ? "text-red-400" : "text-yellow-400"}`}>
+                      {countdown}
+                    </span>
+                    <span className="text-[7px] text-white/30 uppercase tracking-widest">sec</span>
+                  </div>
+                </div>
+
+                <Loader2 className="h-6 w-6 text-yellow-500 animate-spin mx-auto" />
                 <p className="text-[10px] font-black text-yellow-500/60 uppercase tracking-[0.5em]">
                   Scanning Neural Grid For Opponent
                 </p>
