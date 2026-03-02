@@ -8,6 +8,7 @@ export const FIELDS = {
   Medicine: ["General", "Surgery", "Psychiatry", "Research", "Pharmacology"],
   Law: ["Criminal", "Corporate", "International", "Human Rights"],
   Education: ["Teaching", "Psychology", "Sociology", "Philosophy"],
+  Mastermind: ["All Categories"], // New: Mixed tough questions from all fields
 } as const;
 
 // STEAM fields for school-level students
