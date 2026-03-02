@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { Swords, ChevronRight, User, Users, Zap, Crown, Target } from "lucide-react";
+import { motion } from "framer-motion";
+import { Swords, Users, Zap, Crown, Target } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { FIELDS } from "@/lib/constants";
@@ -10,16 +10,11 @@ import { toast } from "sonner";
 export default function BattleArena() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [field, setField] = useState("Technology");
-  const [subfield, setSubfield] = useState("");
-  const [difficulty, setDifficulty] = useState("Standard");
-  const [searching, setSearching] = useState(false);
   const [activeBattleGames, setActiveBattleGames] = useState(0);
   const [fieldPlayerCounts, setFieldPlayerCounts] = useState<Record<string, number>>({});
+  const [searching, setSearching] = useState<string | null>(null);
 
-  const subfields = (FIELDS as any)[field] || [];
-
-  // Fetch active battle games count (not total players)
+  // Fetch active battle games count
   useEffect(() => {
     const fetchBattleGames = async () => {
       const { count } = await supabase
@@ -35,7 +30,7 @@ export default function BattleArena() {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch player counts per field
+  // Fetch real-time player counts per field
   useEffect(() => {
     const fetchFieldCounts = async () => {
       const { data: battles } = await supabase
@@ -60,28 +55,26 @@ export default function BattleArena() {
     };
 
     fetchFieldCounts();
-    const interval = setInterval(fetchFieldCounts, 5000);
+    const interval = setInterval(fetchFieldCounts, 3000); // Update every 3 seconds for real-time feel
     return () => clearInterval(interval);
   }, []);
 
-  const handleSelectSubfield = async (selectedSubfield: string) => {
+  const handleSelectField = async (selectedField: string) => {
     if (!user) {
       toast.error("Login first to enter the battlefield");
       navigate("/auth");
       return;
     }
 
-    setSubfield(selectedSubfield);
-    setSearching(true);
+    setSearching(selectedField);
 
     try {
-      // Look for existing waiting battles
+      // Look for existing waiting battles in this field (no subfield matching)
       const { data: existingBattles, error: fetchError } = await supabase
         .from("battles")
         .select("*")
         .eq("status", "waiting")
-        .eq("field", field)
-        .eq("subfield", selectedSubfield)
+        .eq("field", selectedField)
         .neq("player1_id", user.id)
         .limit(1);
 
@@ -96,14 +89,14 @@ export default function BattleArena() {
           .eq("id", existing.id);
         navigate(`/battle/${existing.id}`);
       } else {
-        // Create new battle
+        // Create new battle (subfield set to "General" for all fields)
         const { data: newBattle, error } = await supabase
           .from("battles")
           .insert({
             player1_id: user.id,
-            field,
-            subfield: selectedSubfield,
-            difficulty,
+            field: selectedField,
+            subfield: "General", // Default subfield
+            difficulty: "Standard",
             status: "waiting",
           })
           .select()
@@ -115,19 +108,13 @@ export default function BattleArena() {
     } catch (err: any) {
       console.error(err);
       toast.error("Failed to start battle");
-      setSearching(false);
-      setSubfield("");
+      setSearching(null);
     }
   };
 
   const getFieldIcon = (fieldName: string) => {
-    if (fieldName === "Mastermind") return <Crown className="h-4 w-4" />;
-    return <Swords className="h-4 w-4" />;
-  };
-
-  const getFieldColor = (fieldName: string) => {
-    if (fieldName === "Mastermind") return "from-purple-500 to-pink-500";
-    return "from-yellow-500 to-red-500";
+    if (fieldName === "Mastermind") return <Crown className="h-5 w-5" />;
+    return <Swords className="h-5 w-5" />;
   };
 
   return (
@@ -147,7 +134,7 @@ export default function BattleArena() {
           Neural <span className="text-yellow-500">Combat</span>
         </h2>
         <p className="text-[10px] text-white/30 uppercase tracking-[0.4em]">
-          Challenge a random opponent • Same questions • One winner
+          Select your field • Challenge opponents • Prove your mastery
         </p>
         {/* Active battle games count */}
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-yellow-500/10 border border-yellow-500/20 mt-3">
@@ -159,125 +146,133 @@ export default function BattleArena() {
       </div>
 
       <div className="max-w-6xl mx-auto">
-        {/* Field Tabs */}
-        <div className="mb-6 overflow-x-auto">
-          <div className="flex gap-2 pb-2 min-w-max">
-            {Object.keys(FIELDS).map((f) => {
-              const playerCount = fieldPlayerCounts[f] || 0;
-              const isMastermind = f === "Mastermind";
-              
-              return (
-                <button
-                  key={f}
-                  onClick={() => { setField(f); setSubfield(""); }}
-                  className={`relative px-4 py-3 rounded-xl text-xs font-bold border transition-all duration-300 flex items-center gap-2 ${
-                    field === f
-                      ? isMastermind
-                        ? "border-purple-500 bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.3)]"
-                        : "border-yellow-500 bg-gradient-to-r from-yellow-500/20 to-red-500/20 text-yellow-400 shadow-[0_0_20px_rgba(255,191,0,0.3)]"
-                      : "border-white/5 bg-white/5 text-white/40 hover:border-white/20 hover:text-white/80"
-                  }`}
-                >
-                  {getFieldIcon(f)}
-                  <span>{f}</span>
-                  {playerCount > 0 && (
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${
-                      field === f
-                        ? isMastermind
-                          ? "bg-purple-500 text-white"
-                          : "bg-yellow-500 text-black"
-                        : "bg-white/10 text-white/30"
-                    }`}>
-                      {playerCount}
-                    </span>
-                  )}
-                  {isMastermind && (
-                    <Zap className="h-3 w-3 text-purple-400 animate-pulse" />
-                  )}
-                </button>
-              );
-            })}
+        {/* Mastermind Warning */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20"
+        >
+          <div className="flex items-center gap-3">
+            <Crown className="h-6 w-6 text-purple-400" />
+            <div>
+              <p className="text-sm font-black text-purple-400 uppercase tracking-wider">Mastermind Challenge Available</p>
+              <p className="text-[10px] text-purple-300/60 mt-1">
+                Click Mastermind field for mixed questions from all categories • Extremely difficult
+              </p>
+            </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="relative rounded-3xl border border-white/5 bg-white/[0.01] backdrop-blur-3xl p-8 overflow-hidden">
-          <div className={`absolute inset-0 bg-gradient-to-r ${
-            field === "Mastermind" 
-              ? "from-purple-500/5 via-transparent to-pink-500/5" 
-              : "from-yellow-500/5 via-transparent to-red-500/5"
-          }`} />
-          <div className={`absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r ${
-            field === "Mastermind"
-              ? "from-purple-500/30 via-transparent to-pink-500/30"
-              : "from-yellow-500/30 via-transparent to-red-500/30"
-          }`} />
-
-          <div className="relative z-10">
-            {/* Mastermind Warning */}
-            {field === "Mastermind" && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20"
+        {/* Field Selection Cards - Click to Start Battle */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {Object.keys(FIELDS).map((field) => {
+            const playerCount = fieldPlayerCounts[field] || 0;
+            const isMastermind = field === "Mastermind";
+            const isSearching = searching === field;
+            
+            return (
+              <motion.button
+                key={field}
+                onClick={() => handleSelectField(field)}
+                disabled={isSearching}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                whileHover={{ scale: isSearching ? 1 : 1.05 }}
+                whileTap={{ scale: isSearching ? 1 : 0.95 }}
+                className={`group relative rounded-2xl border transition-all duration-300 overflow-hidden ${
+                  isSearching
+                    ? "border-white/20 bg-white/10 cursor-wait"
+                    : isMastermind
+                      ? "border-purple-500/30 bg-gradient-to-br from-purple-500/10 to-pink-500/10 hover:border-purple-500/50 hover:shadow-[0_0_30px_rgba(168,85,247,0.3)]"
+                      : "border-yellow-500/30 bg-gradient-to-br from-yellow-500/10 to-red-500/10 hover:border-yellow-500/50 hover:shadow-[0_0_30px_rgba(255,191,0,0.3)]"
+                }`}
               >
-                <div className="flex items-center gap-3">
-                  <Crown className="h-6 w-6 text-purple-400" />
-                  <div>
-                    <p className="text-sm font-black text-purple-400 uppercase tracking-wider">Elite Challenge</p>
-                    <p className="text-[10px] text-purple-300/60 mt-1">
-                      Mixed questions from all categories • Extremely difficult • For top minds only
-                    </p>
-                  </div>
-                </div>
-              </motion.div>
-            )}
+                {/* Background glow */}
+                <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                  isMastermind
+                    ? "bg-gradient-to-br from-purple-500/5 to-pink-500/5"
+                    : "bg-gradient-to-br from-yellow-500/5 to-red-500/5"
+                }`} />
 
-            {/* Specialization Tabs - Click to Start Battle */}
-            <AnimatePresence mode="wait">
-              {subfields.length > 0 && (
-                <motion.div
-                  key={field}
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="space-y-4"
-                >
-                  <label className={`text-[9px] font-black uppercase tracking-[0.4em] flex items-center gap-2 ${
-                    field === "Mastermind" ? "text-purple-500/60" : "text-yellow-500/60"
-                  }`}>
-                    <Target className="h-3 w-3" /> 
-                    {field === "Mastermind" ? "Select Challenge Level to Start" : "Select Specialization to Start Battle"}
-                  </label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {subfields.map((s: string) => (
-                      <button
-                        key={s}
-                        onClick={() => handleSelectSubfield(s)}
-                        disabled={searching}
-                        className={`group relative px-6 py-4 rounded-xl text-sm font-bold border transition-all duration-300 ${
-                          searching && subfield === s
-                            ? "border-white/20 bg-white/10 text-white/50 cursor-wait"
-                            : field === "Mastermind"
-                              ? "border-purple-500/30 bg-purple-500/5 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/50 hover:shadow-[0_0_20px_rgba(168,85,247,0.2)]"
-                              : "border-yellow-500/30 bg-yellow-500/5 text-yellow-400 hover:bg-yellow-500/10 hover:border-yellow-500/50 hover:shadow-[0_0_20px_rgba(255,191,0,0.2)]"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span>{s}</span>
-                          {searching && subfield === s ? (
-                            <div className="w-4 h-4 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                          )}
-                        </div>
-                      </button>
-                    ))}
+                {/* Player count badge */}
+                {playerCount > 0 && (
+                  <div className="absolute top-3 right-3 z-10">
+                    <motion.div
+                      animate={{ scale: [1, 1.1, 1] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-black ${
+                        isMastermind
+                          ? "bg-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.5)]"
+                          : "bg-yellow-500 text-black shadow-[0_0_10px_rgba(255,191,0,0.5)]"
+                      }`}
+                    >
+                      <Users className="h-3 w-3" />
+                      <span>{playerCount}</span>
+                    </motion.div>
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+                )}
+
+                {/* Content */}
+                <div className="relative z-10 p-6 flex flex-col items-center gap-4">
+                  {/* Icon */}
+                  <div className={`p-4 rounded-xl ${
+                    isMastermind
+                      ? "bg-purple-500/20 border border-purple-500/30"
+                      : "bg-yellow-500/20 border border-yellow-500/30"
+                  }`}>
+                    {getFieldIcon(field)}
+                  </div>
+
+                  {/* Field name */}
+                  <div className="text-center">
+                    <h3 className={`text-lg font-black uppercase tracking-tight ${
+                      isMastermind ? "text-purple-400" : "text-yellow-400"
+                    }`}>
+                      {field}
+                    </h3>
+                    {isMastermind && (
+                      <div className="flex items-center justify-center gap-1 mt-1">
+                        <Zap className="h-3 w-3 text-purple-400 animate-pulse" />
+                        <span className="text-[8px] text-purple-300/60 uppercase tracking-widest">Elite</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Loading or CTA */}
+                  {isSearching ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+                      <span className="text-[10px] text-white/60 uppercase tracking-wider">Searching...</span>
+                    </div>
+                  ) : (
+                    <div className={`text-[10px] uppercase tracking-widest font-bold ${
+                      isMastermind ? "text-purple-300/60" : "text-yellow-300/60"
+                    }`}>
+                      Click to Battle
+                    </div>
+                  )}
+                </div>
+
+                {/* Hover effect line */}
+                <div className={`absolute bottom-0 left-0 right-0 h-[2px] transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ${
+                  isMastermind
+                    ? "bg-gradient-to-r from-purple-500 to-pink-500"
+                    : "bg-gradient-to-r from-yellow-500 to-red-500"
+                }`} />
+              </motion.button>
+            );
+          })}
         </div>
+
+        {/* Info text */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="text-center text-[10px] text-white/20 uppercase tracking-[0.3em] mt-8"
+        >
+          Real-time player counts • Instant matchmaking • Same questions for fair competition
+        </motion.p>
       </div>
     </motion.section>
   );
