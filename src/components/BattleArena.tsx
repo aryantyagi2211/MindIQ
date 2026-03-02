@@ -25,8 +25,7 @@ export default function BattleArena() {
         .from("battles")
         .select("*", { count: "exact", head: true })
         .in("status", ["waiting", "matched", "active"]);
-      // Each battle has 1-2 players
-      setActivePlayers((count || 0) * 2);
+      setActivePlayers(count || 0);
     };
     fetchCount();
     const interval = setInterval(fetchCount, 10000);
@@ -113,7 +112,7 @@ export default function BattleArena() {
           </span>
           <Users className="h-3 w-3 text-green-400" />
           <span className="text-[10px] font-bold text-green-400">
-            {activePlayers} player{activePlayers !== 1 ? "s" : ""} online
+            {activePlayers} active battle{activePlayers !== 1 ? "s" : ""}
           </span>
         </div>
       </div>
