@@ -18,26 +18,35 @@ export default function BattleArena() {
 
   const subfields = (FIELDS as any)[field] || [];
 
-  // Fetch online players count
+  // Fetch online players count using Supabase Presence
   useEffect(() => {
-    const fetchOnlinePlayers = async () => {
-      // Count unique online players (players in active battles)
-      const { data: battles } = await supabase
-        .from("battles")
-        .select("player1_id, player2_id")
-        .in("status", ["waiting", "matched", "active"]);
-      
-      const uniquePlayers = new Set<string>();
-      battles?.forEach(b => {
-        if (b.player1_id) uniquePlayers.add(b.player1_id);
-        if (b.player2_id) uniquePlayers.add(b.player2_id);
+    const channel = supabase.channel('online-users', {
+      config: {
+        presence: {
+          key: user?.id || 'anonymous',
+        },
+      },
+    });
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        const onlineCount = Object.keys(state).length;
+        setOnlinePlayers(onlineCount);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED' && user) {
+          await channel.track({
+            user_id: user.id,
+            online_at: new Date().toISOString(),
+          });
+        }
       });
-      setOnlinePlayers(uniquePlayers.size);
+
+    return () => {
+      channel.unsubscribe();
     };
-    fetchOnlinePlayers();
-    const interval = setInterval(fetchOnlinePlayers, 5000);
-    return () => clearInterval(interval);
-  }, []);
+  }, [user]);
 
   const handleFindBattle = async () => {
     if (!user) {
@@ -53,23 +62,28 @@ export default function BattleArena() {
     setSearching(true);
 
     try {
-      const { data: existing } = await supabase
+      // Look for existing waiting battles (removed .single() to avoid error)
+      const { data: existingBattles, error: fetchError } = await supabase
         .from("battles")
         .select("*")
         .eq("status", "waiting")
         .eq("field", field)
         .eq("subfield", subfield)
         .neq("player1_id", user.id)
-        .limit(1)
-        .single();
+        .limit(1);
 
-      if (existing) {
+      if (fetchError) throw fetchError;
+
+      // If found a waiting battle, join it
+      if (existingBattles && existingBattles.length > 0) {
+        const existing = existingBattles[0];
         await supabase
           .from("battles")
           .update({ player2_id: user.id, status: "matched" })
           .eq("id", existing.id);
         navigate(`/battle/${existing.id}`);
       } else {
+        // Create new battle
         const { data: newBattle, error } = await supabase
           .from("battles")
           .insert({
