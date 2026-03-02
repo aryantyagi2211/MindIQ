@@ -1,0 +1,1 @@
+CREATE POLICY "Players can delete own waiting battles" ON public.battles FOR DELETE TO authenticated USING (auth.uid() = player1_id AND status = 'waiting');
