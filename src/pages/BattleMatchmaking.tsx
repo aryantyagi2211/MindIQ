@@ -15,6 +15,8 @@ export default function BattleMatchmaking() {
   const { user } = useAuth();
   const [battle, setBattle] = useState<any>(null);
   const [opponent, setOpponent] = useState<any>(null);
+  const [opponentStats, setOpponentStats] = useState<any>(null);
+  const [myStats, setMyStats] = useState<any>(null);
   const [matched, setMatched] = useState(false);
   const [generatingQuestions, setGeneratingQuestions] = useState(false);
   const [countdown, setCountdown] = useState(TIMEOUT_SECONDS);
@@ -76,6 +78,16 @@ export default function BattleMatchmaking() {
 
       setBattle(data);
 
+      // Fetch my stats
+      const { data: myTestResults } = await supabase
+        .from("test_results")
+        .select("overall_score, field, subfield")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+      setMyStats(myTestResults);
+
       if (data.status === "active" && data.questions) {
         navigate(`/battle/${battleId}/fight`);
         return;
@@ -124,7 +136,17 @@ export default function BattleMatchmaking() {
       .eq("user_id", opponentId)
       .single();
 
+    // Fetch opponent's latest test result
+    const { data: oppTestResults } = await supabase
+      .from("test_results")
+      .select("overall_score, field, subfield")
+      .eq("user_id", opponentId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
     setOpponent(profile);
+    setOpponentStats(oppTestResults);
     setMatched(true);
 
     if (battleData.player1_id === user?.id && !battleData.questions) {
@@ -187,10 +209,25 @@ export default function BattleMatchmaking() {
               animate={{ x: 0, opacity: 1 }}
               className="flex flex-col items-center gap-3"
             >
-              <div className="h-24 w-24 rounded-full border-2 border-yellow-500/40 bg-yellow-500/5 flex items-center justify-center shadow-[0_0_40px_rgba(255,191,0,0.2)]">
-                <User className="h-10 w-10 text-yellow-500" />
+              <div className="relative rounded-2xl border border-yellow-500/30 bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 p-4 backdrop-blur-xl w-full">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="h-20 w-20 rounded-full border-2 border-yellow-500/40 bg-yellow-500/5 flex items-center justify-center shadow-[0_0_40px_rgba(255,191,0,0.2)]">
+                    <User className="h-10 w-10 text-yellow-500" />
+                  </div>
+                  <span className="text-base font-black text-white uppercase tracking-wider">You</span>
+                  {myStats && (
+                    <div className="w-full pt-3 border-t border-yellow-500/20 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[8px] text-yellow-500/60 uppercase tracking-widest">Score</span>
+                        <span className="text-lg font-black text-yellow-500">{myStats.overall_score}</span>
+                      </div>
+                      <div className="text-[7px] text-yellow-500/40 uppercase tracking-wider text-center">
+                        {myStats.field}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-              <span className="text-lg font-black text-white uppercase tracking-wider">You</span>
             </motion.div>
 
             <motion.div
@@ -210,33 +247,52 @@ export default function BattleMatchmaking() {
               className="flex flex-col items-center gap-3"
             >
               {matched && opponent ? (
-                <>
-                  <div className="h-24 w-24 rounded-full border-2 border-red-500/40 bg-red-500/5 flex items-center justify-center shadow-[0_0_40px_rgba(239,68,68,0.2)] overflow-hidden">
-                    {opponent.avatar_url ? (
-                      <img src={opponent.avatar_url} className="h-full w-full object-cover rounded-full" />
-                    ) : (
-                      <User className="h-10 w-10 text-red-400" />
+                <div className="relative rounded-2xl border border-red-500/30 bg-gradient-to-br from-red-500/10 to-red-600/5 p-4 backdrop-blur-xl w-full">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="h-20 w-20 rounded-full border-2 border-red-500/40 bg-red-500/5 flex items-center justify-center shadow-[0_0_40px_rgba(239,68,68,0.2)] overflow-hidden">
+                      {opponent.avatar_url ? (
+                        <img src={opponent.avatar_url} className="h-full w-full object-cover rounded-full" />
+                      ) : (
+                        <User className="h-10 w-10 text-red-400" />
+                      )}
+                    </div>
+                    <span className="text-base font-black text-white uppercase tracking-wider">{opponent.username}</span>
+                    {opponentStats && (
+                      <div className="w-full pt-3 border-t border-red-500/20 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[8px] text-red-400/60 uppercase tracking-widest">Score</span>
+                          <span className="text-lg font-black text-red-400">{opponentStats.overall_score}</span>
+                        </div>
+                        <div className="text-[7px] text-red-400/40 uppercase tracking-wider text-center">
+                          {opponentStats.field}
+                        </div>
+                      </div>
                     )}
                   </div>
-                  <span className="text-lg font-black text-white uppercase tracking-wider">{opponent.username}</span>
-                </>
+                </div>
               ) : (
-                <>
-                  <motion.div
-                    animate={{ borderColor: ["rgba(255,255,255,0.1)", "rgba(255,191,0,0.3)", "rgba(255,255,255,0.1)"] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    className="h-24 w-24 rounded-full border-2 bg-white/5 flex items-center justify-center"
-                  >
-                    <motion.span
-                      animate={{ opacity: [0.3, 1, 0.3] }}
-                      transition={{ duration: 1.5, repeat: Infinity }}
-                      className="text-4xl"
+                <div className="relative rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-xl w-full">
+                  <div className="flex flex-col items-center gap-3">
+                    <motion.div
+                      animate={{ borderColor: ["rgba(255,255,255,0.1)", "rgba(255,191,0,0.3)", "rgba(255,255,255,0.1)"] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className="h-20 w-20 rounded-full border-2 bg-white/5 flex items-center justify-center"
                     >
-                      ?
-                    </motion.span>
-                  </motion.div>
-                  <span className="text-lg font-black text-white/20 uppercase tracking-wider">Searching...</span>
-                </>
+                      <motion.span
+                        animate={{ opacity: [0.3, 1, 0.3] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                        className="text-4xl"
+                      >
+                        ?
+                      </motion.span>
+                    </motion.div>
+                    <span className="text-base font-black text-white/20 uppercase tracking-wider">Searching...</span>
+                    <div className="w-full pt-3 border-t border-white/5 space-y-1">
+                      <div className="h-4 bg-white/5 rounded animate-pulse" />
+                      <div className="h-3 bg-white/5 rounded animate-pulse" />
+                    </div>
+                  </div>
+                </div>
               )}
             </motion.div>
           </div>

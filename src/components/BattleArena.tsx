@@ -14,21 +14,28 @@ export default function BattleArena() {
   const [subfield, setSubfield] = useState("");
   const [difficulty, setDifficulty] = useState("Standard");
   const [searching, setSearching] = useState(false);
-  const [activePlayers, setActivePlayers] = useState(0);
+  const [onlinePlayers, setOnlinePlayers] = useState(0);
 
   const subfields = (FIELDS as any)[field] || [];
 
-  // Fetch active player count
+  // Fetch online players count
   useEffect(() => {
-    const fetchCount = async () => {
-      const { count } = await supabase
+    const fetchOnlinePlayers = async () => {
+      // Count unique online players (players in active battles)
+      const { data: battles } = await supabase
         .from("battles")
-        .select("*", { count: "exact", head: true })
+        .select("player1_id, player2_id")
         .in("status", ["waiting", "matched", "active"]);
-      setActivePlayers(count || 0);
+      
+      const uniquePlayers = new Set<string>();
+      battles?.forEach(b => {
+        if (b.player1_id) uniquePlayers.add(b.player1_id);
+        if (b.player2_id) uniquePlayers.add(b.player2_id);
+      });
+      setOnlinePlayers(uniquePlayers.size);
     };
-    fetchCount();
-    const interval = setInterval(fetchCount, 10000);
+    fetchOnlinePlayers();
+    const interval = setInterval(fetchOnlinePlayers, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -104,15 +111,15 @@ export default function BattleArena() {
         <p className="text-[10px] text-white/30 uppercase tracking-[0.4em]">
           Challenge a random opponent • Same questions • One winner
         </p>
-        {/* Live player count */}
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20 mt-2">
+        {/* Online players count */}
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-green-500/10 border border-green-500/20 mt-3">
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
             <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
           </span>
           <Users className="h-3 w-3 text-green-400" />
           <span className="text-[10px] font-bold text-green-400">
-            {activePlayers} active battle{activePlayers !== 1 ? "s" : ""}
+            {onlinePlayers} player{onlinePlayers !== 1 ? "s" : ""} online
           </span>
         </div>
       </div>

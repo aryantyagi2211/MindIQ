@@ -1,12 +1,13 @@
 # Force Lovable to redeploy edge functions
-# Last updated: 2026-03-02
-# Version: 2.0.0
+# Last updated: 2026-03-02 - Strengthened AI prompt for subject-specific questions
+# This file triggers Lovable's deployment system
 
-This file triggers Lovable to redeploy the edge functions.
-The generate-questions function has been completely rewritten to:
-1. Generate subject-specific questions (Mathematics, Physics, etc.)
-2. Always include 4 MCQ options
-3. Prevent generic reasoning puzzles
-4. Use proper JSON format
+DEPLOYMENT_TRIGGER=true
+TIMESTAMP=2026-03-02T00:00:00Z
+VERSION=2.0.0
 
-CRITICAL: The deployed version must match the code in this repository!
+# Changes in this deployment:
+# - Added ABSOLUTELY FORBIDDEN section to prevent generic questions
+# - Added REQUIRED FOR MATHEMATICS section with specific examples
+# - Strengthened prompt to force subject-specific MCQ questions with options
+# - Fixed AI ignoring subject parameter (Mathematics, Physics, etc.)
