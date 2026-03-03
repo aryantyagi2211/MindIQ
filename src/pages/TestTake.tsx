@@ -248,7 +248,7 @@ export default function TestTake() {
 
       <main className="relative h-screen flex flex-col pt-20 pb-4 px-4 z-10 overflow-hidden">
         {/* Top Progress Bar */}
-        <div className="flex items-center justify-between mb-4 flex-shrink-0">
+        <div className="flex items-center justify-between mb-4 flex-shrink-0 max-w-[70%] mx-auto w-full">
           <div className="flex items-center gap-3">
             <span className="text-[10px] font-black text-yellow-500/60 uppercase tracking-[0.4em] flex items-center gap-2">
               <span className="w-1 h-1 bg-yellow-500 rounded-full animate-pulse" /> Pulse {currentIndex + 1} / {questions.length}
@@ -270,16 +270,17 @@ export default function TestTake() {
           </div>
         </div>
 
-        {/* Split Layout */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentIndex}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.35, type: "spring", damping: 22 }}
-            className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 min-h-0 overflow-hidden"
-          >
+        {/* Split Layout - 70% Width Container */}
+        <div className="flex-1 flex justify-center min-h-0 overflow-hidden">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentIndex}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.35, type: "spring", damping: 22 }}
+              className="w-[70%] grid grid-cols-1 lg:grid-cols-2 gap-4 min-h-0 overflow-hidden"
+            >
             {/* LEFT: Scenario + Question */}
             <div className="relative flex flex-col min-h-0">
               <div className="absolute -inset-[1px] bg-gradient-to-br from-yellow-500/20 via-white/5 to-transparent rounded-3xl blur-[1px] opacity-40" />
@@ -345,8 +346,9 @@ export default function TestTake() {
                 )}
               </div>
             </div>
-          </motion.div>
-        </AnimatePresence>
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </main>
 
       <style>{`
