@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { Swords, Users, Zap, Crown, Target, User, ChevronRight } from "lucide-react";
+import { motion } from "framer-motion";
+import { Swords, Zap, Crown, Target, User, ChevronRight } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { FIELDS } from "@/lib/constants";
@@ -86,7 +86,6 @@ export default function BattleArena() {
     setSearching(true);
 
     try {
-      // Look for existing waiting battles in this field
       const { data: existingBattles, error: fetchError } = await supabase
         .from("battles")
         .select("*")
@@ -97,7 +96,6 @@ export default function BattleArena() {
 
       if (fetchError) throw fetchError;
 
-      // If found a waiting battle, join it
       if (existingBattles && existingBattles.length > 0) {
         const existing = existingBattles[0];
         await supabase
@@ -106,7 +104,6 @@ export default function BattleArena() {
           .eq("id", existing.id);
         navigate(`/battle/${existing.id}`);
       } else {
-        // Create new battle
         const { data: newBattle, error } = await supabase
           .from("battles")
           .insert({
@@ -130,8 +127,8 @@ export default function BattleArena() {
   };
 
   const getFieldIcon = (fieldName: string) => {
-    if (fieldName === "Mastermind") return <Crown className="h-4 w-4" />;
-    return <Swords className="h-4 w-4" />;
+    if (fieldName === "Mastermind") return <Crown className="h-5 w-5" />;
+    return <Swords className="h-5 w-5" />;
   };
 
   return (
@@ -153,7 +150,6 @@ export default function BattleArena() {
         <p className="text-[10px] text-white/30 uppercase tracking-[0.4em]">
           Select your field • Challenge opponents • Prove your mastery
         </p>
-        {/* Active battle games count */}
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-yellow-500/10 border border-yellow-500/20 mt-3">
           <Target className="h-3 w-3 text-yellow-400" />
           <span className="text-[10px] font-bold text-yellow-400">
@@ -163,40 +159,10 @@ export default function BattleArena() {
       </div>
 
       <div className="max-w-6xl mx-auto space-y-8">
-        {/* Horizontal Field Tabs */}
-        <div className="overflow-x-auto">
-          <div className="flex gap-2 pb-2 min-w-max justify-center">
-            {/* First half of fields */}
-            {Object.keys(FIELDS).slice(0, 4).map((field) => {
-              const playerCount = fieldPlayerCounts[field] || 0;
-              const isSelected = selectedField === field;
-              
-              return (
-                <button
-                  key={field}
-                  onClick={() => setSelectedField(field)}
-                  className={`relative px-6 py-3 rounded-xl text-sm font-bold border transition-all duration-300 flex items-center gap-2 ${
-                    isSelected
-                      ? "border-yellow-500 bg-gradient-to-r from-yellow-500/20 to-red-500/20 text-yellow-400 shadow-[0_0_20px_rgba(255,191,0,0.3)]"
-                      : "border-white/5 bg-white/5 text-white/40 hover:border-white/20 hover:text-white/80"
-                  }`}
-                >
-                  {getFieldIcon(field)}
-                  <span>{field}</span>
-                  {playerCount > 0 && (
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${
-                      isSelected
-                        ? "bg-yellow-500 text-black"
-                        : "bg-white/10 text-white/30"
-                    }`}>
-                      {playerCount}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-
-            {/* Mastermind in the middle */}
+        {/* Two-Row Field Tabs */}
+        <div className="space-y-4">
+          {/* First Row - Mastermind Only (Centered) */}
+          <div className="flex justify-center">
             {(() => {
               const field = "Mastermind";
               const playerCount = fieldPlayerCounts[field] || 0;
@@ -206,16 +172,16 @@ export default function BattleArena() {
                 <button
                   key={field}
                   onClick={() => setSelectedField(field)}
-                  className={`relative px-6 py-3 rounded-xl text-sm font-bold border transition-all duration-300 flex items-center gap-2 ${
+                  className={`relative px-8 py-4 rounded-xl text-base font-bold border transition-all duration-300 flex items-center gap-3 ${
                     isSelected
-                      ? "border-purple-500 bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.3)]"
+                      ? "border-purple-500 bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-400 shadow-[0_0_30px_rgba(168,85,247,0.4)]"
                       : "border-white/5 bg-white/5 text-white/40 hover:border-white/20 hover:text-white/80"
                   }`}
                 >
                   {getFieldIcon(field)}
-                  <span>{field}</span>
+                  <span className="text-lg">{field}</span>
                   {playerCount > 0 && (
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${
+                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-black ${
                       isSelected
                         ? "bg-purple-500 text-white"
                         : "bg-white/10 text-white/30"
@@ -223,40 +189,44 @@ export default function BattleArena() {
                       {playerCount}
                     </span>
                   )}
-                  <Zap className="h-3 w-3 text-purple-400 animate-pulse" />
+                  <Zap className="h-4 w-4 text-purple-400 animate-pulse" />
                 </button>
               );
             })()}
+          </div>
 
-            {/* Second half of fields */}
-            {Object.keys(FIELDS).slice(4, -1).map((field) => {
-              const playerCount = fieldPlayerCounts[field] || 0;
-              const isSelected = selectedField === field;
-              
-              return (
-                <button
-                  key={field}
-                  onClick={() => setSelectedField(field)}
-                  className={`relative px-6 py-3 rounded-xl text-sm font-bold border transition-all duration-300 flex items-center gap-2 ${
-                    isSelected
-                      ? "border-yellow-500 bg-gradient-to-r from-yellow-500/20 to-red-500/20 text-yellow-400 shadow-[0_0_20px_rgba(255,191,0,0.3)]"
-                      : "border-white/5 bg-white/5 text-white/40 hover:border-white/20 hover:text-white/80"
-                  }`}
-                >
-                  {getFieldIcon(field)}
-                  <span>{field}</span>
-                  {playerCount > 0 && (
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${
+          {/* Second Row - All Other Fields */}
+          <div className="overflow-x-auto">
+            <div className="flex gap-2 pb-2 min-w-max justify-center">
+              {Object.keys(FIELDS).filter(f => f !== "Mastermind").map((field) => {
+                const playerCount = fieldPlayerCounts[field] || 0;
+                const isSelected = selectedField === field;
+                
+                return (
+                  <button
+                    key={field}
+                    onClick={() => setSelectedField(field)}
+                    className={`relative px-6 py-3 rounded-xl text-sm font-bold border transition-all duration-300 flex items-center gap-2 ${
                       isSelected
-                        ? "bg-yellow-500 text-black"
-                        : "bg-white/10 text-white/30"
-                    }`}>
-                      {playerCount}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+                        ? "border-yellow-500 bg-gradient-to-r from-yellow-500/20 to-red-500/20 text-yellow-400 shadow-[0_0_20px_rgba(255,191,0,0.3)]"
+                        : "border-white/5 bg-white/5 text-white/40 hover:border-white/20 hover:text-white/80"
+                    }`}
+                  >
+                    {getFieldIcon(field)}
+                    <span>{field}</span>
+                    {playerCount > 0 && (
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${
+                        isSelected
+                          ? "bg-yellow-500 text-black"
+                          : "bg-white/10 text-white/30"
+                      }`}>
+                        {playerCount}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
@@ -307,7 +277,6 @@ export default function BattleArena() {
                     : "border-yellow-500/30 bg-gradient-to-br from-yellow-500/10 to-yellow-600/5"
                 }`}>
                   <div className="flex flex-col items-center gap-4">
-                    {/* Avatar */}
                     <div className={`h-20 w-20 rounded-full border-2 flex items-center justify-center shadow-[0_0_40px_rgba(255,191,0,0.2)] overflow-hidden ${
                       selectedField === "Mastermind"
                         ? "border-purple-500/40 bg-purple-500/5"
@@ -322,7 +291,6 @@ export default function BattleArena() {
                       )}
                     </div>
                     
-                    {/* Name */}
                     <div className="text-center">
                       <h3 className="text-lg font-black text-white uppercase tracking-wider">
                         {myProfile?.username || "You"}
@@ -356,7 +324,6 @@ export default function BattleArena() {
                   </div>
                 </motion.div>
                 
-                {/* Field Display */}
                 <div className={`px-4 py-2 rounded-xl border text-center ${
                   selectedField === "Mastermind"
                     ? "border-purple-500/30 bg-purple-500/10"
@@ -378,7 +345,6 @@ export default function BattleArena() {
               >
                 <div className="relative rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl w-full">
                   <div className="flex flex-col items-center gap-4">
-                    {/* Avatar */}
                     <motion.div
                       animate={{ borderColor: ["rgba(255,255,255,0.1)", "rgba(255,191,0,0.3)", "rgba(255,255,255,0.1)"] }}
                       transition={{ duration: 2, repeat: Infinity }}
@@ -393,7 +359,6 @@ export default function BattleArena() {
                       </motion.span>
                     </motion.div>
                     
-                    {/* Name */}
                     <div className="text-center">
                       <h3 className="text-lg font-black text-white/20 uppercase tracking-wider">
                         Opponent
@@ -431,7 +396,6 @@ export default function BattleArena() {
           </div>
         </div>
 
-        {/* Info */}
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

@@ -230,15 +230,36 @@ export default function Index() {
         </div>
 
         {/* ── 1v1 Battle Arena ── */}
+        {/* Section Divider */}
+        <div className="mt-32 mb-16 flex items-center justify-center">
+          <div className="flex items-center gap-4">
+            <div className="h-[1px] w-16 bg-gradient-to-r from-transparent to-yellow-500/30" />
+            <div className="w-2 h-2 rounded-full bg-yellow-500/40 animate-pulse" />
+            <div className="h-[1px] w-16 bg-gradient-to-l from-transparent to-yellow-500/30" />
+          </div>
+        </div>
+        
         <BattleArena />
 
         {/* ── Live Activity Section ── */}
+        {/* Section Divider */}
+        <div className="mt-32 mb-16 flex items-center justify-center">
+          <div className="flex items-center gap-4">
+            <div className="h-[1px] w-20 bg-gradient-to-r from-transparent to-white/20" />
+            <div className="flex items-center gap-2">
+              <div className="w-1 h-1 rounded-full bg-white/30" />
+              <div className="w-2 h-2 rounded-full bg-white/40" />
+              <div className="w-1 h-1 rounded-full bg-white/30" />
+            </div>
+            <div className="h-[1px] w-20 bg-gradient-to-l from-transparent to-white/20" />
+          </div>
+        </div>
+        
         <motion.section
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.7 }}
-          className="mt-24"
         >
           <div className="grid md:grid-cols-2 gap-8">
             {/* Live Neural Stream */}
@@ -271,8 +292,21 @@ export default function Index() {
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.8 }}
-              className="mt-24 space-y-8"
+              className="space-y-8"
             >
+              {/* Section Divider */}
+              <div className="mt-32 mb-16 flex items-center justify-center">
+                <div className="flex items-center gap-6">
+                  <div className="h-[1px] w-24 bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
+                  <div className="flex items-center gap-1">
+                    <div className="w-1 h-1 rounded-full bg-yellow-500/60 animate-pulse" />
+                    <div className="w-1 h-1 rounded-full bg-yellow-500/40" />
+                    <div className="w-1 h-1 rounded-full bg-yellow-500/60 animate-pulse" />
+                  </div>
+                  <div className="h-[1px] w-24 bg-gradient-to-l from-transparent via-yellow-500/20 to-transparent" />
+                </div>
+              </div>
+              
               <div className="text-center space-y-2 mb-12">
                 <h2 className="text-3xl font-black italic tracking-tighter uppercase">Neural <span className="text-yellow-500">Growth</span> History</h2>
                 <div className="w-24 h-[1px] bg-yellow-500/20 mx-auto" />

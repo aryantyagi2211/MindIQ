@@ -3,9 +3,11 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Swords, User, Loader2, Zap, Clock } from "lucide-react";
+import { Swords, Loader2, Zap } from "lucide-react";
 import Header from "@/components/Header";
+import ResultCard from "@/components/ResultCard";
 import { toast } from "sonner";
+import { getTier } from "@/lib/constants";
 
 const TIMEOUT_SECONDS = 30;
 
@@ -16,6 +18,7 @@ export default function BattleMatchmaking() {
   const [battle, setBattle] = useState<any>(null);
   const [opponent, setOpponent] = useState<any>(null);
   const [opponentStats, setOpponentStats] = useState<any>(null);
+  const [myProfile, setMyProfile] = useState<any>(null);
   const [myStats, setMyStats] = useState<any>(null);
   const [matched, setMatched] = useState(false);
   const [generatingQuestions, setGeneratingQuestions] = useState(false);
@@ -78,10 +81,18 @@ export default function BattleMatchmaking() {
 
       setBattle(data);
 
+      // Fetch my profile
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("username, avatar_url, country")
+        .eq("user_id", user.id)
+        .single();
+      setMyProfile(profile);
+
       // Fetch my stats
       const { data: myTestResults } = await supabase
         .from("test_results")
-        .select("overall_score, field, subfield")
+        .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -139,7 +150,7 @@ export default function BattleMatchmaking() {
     // Fetch opponent's latest test result
     const { data: oppTestResults } = await supabase
       .from("test_results")
-      .select("overall_score, field, subfield")
+      .select("*")
       .eq("user_id", opponentId)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -201,163 +212,194 @@ export default function BattleMatchmaking() {
       <Header />
 
       <main className="relative container pt-24 pb-16 z-10 flex flex-col items-center justify-center min-h-[80vh]">
-        <div className="max-w-2xl w-full text-center space-y-12">
-          {/* VS Cards */}
-          <div className="grid grid-cols-3 items-center gap-6">
+        <div className="max-w-7xl w-full space-y-12">
+          {/* VS Cards - Using Real ResultCard Component */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 items-start gap-8">
+            {/* My Card */}
             <motion.div
               initial={{ x: -50, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
-              className="flex flex-col items-center gap-3"
+              className="flex flex-col items-center"
             >
-              <div className="relative rounded-2xl border border-yellow-500/30 bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 p-4 backdrop-blur-xl w-full">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="h-20 w-20 rounded-full border-2 border-yellow-500/40 bg-yellow-500/5 flex items-center justify-center shadow-[0_0_40px_rgba(255,191,0,0.2)]">
-                    <User className="h-10 w-10 text-yellow-500" />
-                  </div>
-                  <span className="text-base font-black text-white uppercase tracking-wider">You</span>
-                  {myStats && (
-                    <div className="w-full pt-3 border-t border-yellow-500/20 space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[8px] text-yellow-500/60 uppercase tracking-widest">Score</span>
-                        <span className="text-lg font-black text-yellow-500">{myStats.overall_score}</span>
-                      </div>
-                      <div className="text-[7px] text-yellow-500/40 uppercase tracking-wider text-center">
-                        {myStats.field}
-                      </div>
-                    </div>
-                  )}
+              {myStats && myProfile ? (
+                <ResultCard
+                  percentile={myStats.percentile}
+                  tier={getTier(myStats.percentile)}
+                  scores={{
+                    logic: myStats.logic,
+                    creativity: myStats.creativity,
+                    intuition: myStats.intuition,
+                    emotionalIntelligence: myStats.emotional_intelligence,
+                    systemsThinking: myStats.systems_thinking,
+                    overallScore: myStats.overall_score,
+                    famousMatch: myStats.famous_match || "Analyzing...",
+                    famousMatchReason: myStats.famous_match_reason || "",
+                    superpowers: myStats.superpowers || [],
+                    blindSpots: myStats.blind_spots || [],
+                    aiInsight: myStats.ai_insight || "",
+                  }}
+                  field={myStats.subfield || myStats.field}
+                  phase="done"
+                  username={myProfile.username}
+                  avatarUrl={myProfile.avatar_url}
+                />
+              ) : (
+                <div className="w-full max-w-[690px] h-[600px] rounded-3xl bg-white/5 border border-white/10 p-6 animate-pulse flex items-center justify-center">
+                  <Loader2 className="h-12 w-12 text-yellow-500 animate-spin" />
                 </div>
-              </div>
+              )}
             </motion.div>
 
-            <motion.div
-              animate={{ scale: [1, 1.15, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="relative"
-            >
-              <div className="absolute inset-0 bg-red-500/20 blur-3xl rounded-full" />
-              <div className="relative text-6xl font-black italic text-red-500 drop-shadow-[0_0_40px_rgba(239,68,68,0.6)]">
-                VS
-              </div>
-            </motion.div>
+            {/* VS Section */}
+            <div className="flex flex-col items-center justify-center pt-20">
+              <motion.div
+                animate={{ scale: [1, 1.15, 1], rotate: [0, 5, -5, 0] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="relative mb-6"
+              >
+                <div className="absolute inset-0 bg-red-500/20 blur-3xl rounded-full" />
+                <div className="relative text-7xl font-black italic text-red-500 drop-shadow-[0_0_40px_rgba(239,68,68,0.6)]">
+                  VS
+                </div>
+              </motion.div>
 
+              {/* Status + Timer */}
+              {!matched ? (
+                <motion.div
+                  animate={{ opacity: [0.7, 1, 0.7] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="space-y-4 text-center"
+                >
+                  {/* Countdown ring */}
+                  <div className="relative w-24 h-24 mx-auto">
+                    <svg className="w-full h-full -rotate-90" viewBox="0 0 96 96">
+                      <circle cx="48" cy="48" r="40" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="4" />
+                      <circle
+                        cx="48" cy="48" r="40" fill="none"
+                        stroke={countdown <= 10 ? "#ef4444" : "#eab308"}
+                        strokeWidth="4"
+                        strokeLinecap="round"
+                        strokeDasharray={2 * Math.PI * 40}
+                        strokeDashoffset={2 * Math.PI * 40 * (1 - countdown / TIMEOUT_SECONDS)}
+                        className="transition-all duration-1000 ease-linear"
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className={`text-2xl font-black tabular-nums ${countdown <= 10 ? "text-red-400" : "text-yellow-400"}`}>
+                        {countdown}
+                      </span>
+                      <span className="text-[7px] text-white/30 uppercase tracking-widest">sec</span>
+                    </div>
+                  </div>
+
+                  <Loader2 className="h-6 w-6 text-yellow-500 animate-spin mx-auto" />
+                  <p className="text-[10px] font-black text-yellow-500/60 uppercase tracking-[0.5em]">
+                    Scanning Neural Grid
+                  </p>
+                  <p className="text-[8px] text-white/20 uppercase tracking-[0.3em]">
+                    {battle?.field} • {battle?.subfield}
+                  </p>
+                </motion.div>
+              ) : generatingQuestions ? (
+                <motion.div
+                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                  className="space-y-3 text-center"
+                >
+                  <Zap className="h-8 w-8 text-yellow-500 animate-pulse mx-auto" />
+                  <p className="text-[10px] font-black text-yellow-500/60 uppercase tracking-[0.5em]">
+                    Generating Questions
+                  </p>
+                </motion.div>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="space-y-3 text-center"
+                >
+                  <Swords className="h-8 w-8 text-red-500 mx-auto" />
+                  <p className="text-[10px] font-black text-red-400 uppercase tracking-[0.5em]">
+                    Opponent Found
+                  </p>
+                </motion.div>
+              )}
+            </div>
+
+            {/* Opponent Card */}
             <motion.div
               initial={{ x: 50, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
-              className="flex flex-col items-center gap-3"
+              className="flex flex-col items-center"
             >
-              {matched && opponent ? (
-                <div className="relative rounded-2xl border border-red-500/30 bg-gradient-to-br from-red-500/10 to-red-600/5 p-4 backdrop-blur-xl w-full">
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="h-20 w-20 rounded-full border-2 border-red-500/40 bg-red-500/5 flex items-center justify-center shadow-[0_0_40px_rgba(239,68,68,0.2)] overflow-hidden">
-                      {opponent.avatar_url ? (
-                        <img src={opponent.avatar_url} className="h-full w-full object-cover rounded-full" />
-                      ) : (
-                        <User className="h-10 w-10 text-red-400" />
-                      )}
+              {matched && opponent && opponentStats ? (
+                <ResultCard
+                  percentile={opponentStats.percentile}
+                  tier={getTier(opponentStats.percentile)}
+                  scores={{
+                    logic: opponentStats.logic,
+                    creativity: opponentStats.creativity,
+                    intuition: opponentStats.intuition,
+                    emotionalIntelligence: opponentStats.emotional_intelligence,
+                    systemsThinking: opponentStats.systems_thinking,
+                    overallScore: opponentStats.overall_score,
+                    famousMatch: opponentStats.famous_match || "Analyzing...",
+                    famousMatchReason: opponentStats.famous_match_reason || "",
+                    superpowers: opponentStats.superpowers || [],
+                    blindSpots: opponentStats.blind_spots || [],
+                    aiInsight: opponentStats.ai_insight || "",
+                  }}
+                  field={opponentStats.subfield || opponentStats.field}
+                  phase="done"
+                  username={opponent.username}
+                  avatarUrl={opponent.avatar_url}
+                />
+              ) : (
+                <div className="w-full max-w-[690px] h-[600px] rounded-3xl bg-white/5 border border-white/10 p-6 animate-pulse">
+                  <div className="space-y-6">
+                    {/* Header skeleton */}
+                    <div className="flex items-center justify-between">
+                      <div className="h-5 w-24 bg-white/5 rounded animate-pulse" />
+                      <div className="h-7 w-32 bg-white/5 rounded-full animate-pulse" />
                     </div>
-                    <span className="text-base font-black text-white uppercase tracking-wider">{opponent.username}</span>
-                    {opponentStats && (
-                      <div className="w-full pt-3 border-t border-red-500/20 space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[8px] text-red-400/60 uppercase tracking-widest">Score</span>
-                          <span className="text-lg font-black text-red-400">{opponentStats.overall_score}</span>
-                        </div>
-                        <div className="text-[7px] text-red-400/40 uppercase tracking-wider text-center">
-                          {opponentStats.field}
+
+                    {/* Score skeleton */}
+                    <div className="flex flex-col items-center space-y-3 py-6">
+                      <div className="h-20 w-40 bg-white/5 rounded-2xl animate-pulse" />
+                      <div className="h-3 w-24 bg-white/5 rounded animate-pulse" />
+                      <div className="h-6 w-48 bg-white/5 rounded animate-pulse" />
+                      <div className="h-4 w-32 bg-white/5 rounded animate-pulse" />
+                    </div>
+
+                    {/* User card skeleton */}
+                    <div className="rounded-3xl bg-white/[0.03] border border-white/5 p-6 space-y-5">
+                      <div className="flex items-center gap-5">
+                        <div className="h-14 w-14 rounded-full bg-white/5 animate-pulse" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-5 w-32 bg-white/5 rounded animate-pulse" />
+                          <div className="h-3 w-24 bg-white/5 rounded animate-pulse" />
                         </div>
                       </div>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="relative rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-xl w-full">
-                  <div className="flex flex-col items-center gap-3">
-                    <motion.div
-                      animate={{ borderColor: ["rgba(255,255,255,0.1)", "rgba(255,191,0,0.3)", "rgba(255,255,255,0.1)"] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                      className="h-20 w-20 rounded-full border-2 bg-white/5 flex items-center justify-center"
-                    >
-                      <motion.span
-                        animate={{ opacity: [0.3, 1, 0.3] }}
-                        transition={{ duration: 1.5, repeat: Infinity }}
-                        className="text-4xl"
-                      >
-                        ?
-                      </motion.span>
-                    </motion.div>
-                    <span className="text-base font-black text-white/20 uppercase tracking-wider">Searching...</span>
-                    <div className="w-full pt-3 border-t border-white/5 space-y-1">
-                      <div className="h-4 bg-white/5 rounded animate-pulse" />
-                      <div className="h-3 bg-white/5 rounded animate-pulse" />
+
+                      {/* Dimension bars skeleton */}
+                      <div className="space-y-4">
+                        {[1, 2, 3, 4, 5].map((i) => (
+                          <div key={i} className="flex items-center gap-3">
+                            <div className="h-3 w-16 bg-white/5 rounded animate-pulse" />
+                            <div className="flex-1 h-3 bg-white/5 rounded-full animate-pulse" />
+                            <div className="h-3 w-6 bg-white/5 rounded animate-pulse" />
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Mind match skeleton */}
+                      <div className="pt-4 border-t border-white/5">
+                        <div className="h-12 bg-white/5 rounded-xl animate-pulse" />
+                      </div>
                     </div>
                   </div>
                 </div>
               )}
             </motion.div>
-          </div>
-
-          {/* Status + Timer */}
-          <div className="space-y-4">
-            {!matched ? (
-              <motion.div
-                animate={{ opacity: [0.7, 1, 0.7] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="space-y-4"
-              >
-                {/* Countdown ring */}
-                <div className="relative w-24 h-24 mx-auto">
-                  <svg className="w-full h-full -rotate-90" viewBox="0 0 96 96">
-                    <circle cx="48" cy="48" r="40" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="4" />
-                    <circle
-                      cx="48" cy="48" r="40" fill="none"
-                      stroke={countdown <= 10 ? "#ef4444" : "#eab308"}
-                      strokeWidth="4"
-                      strokeLinecap="round"
-                      strokeDasharray={circumference}
-                      strokeDashoffset={strokeDashoffset}
-                      className="transition-all duration-1000 ease-linear"
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className={`text-2xl font-black tabular-nums ${countdown <= 10 ? "text-red-400" : "text-yellow-400"}`}>
-                      {countdown}
-                    </span>
-                    <span className="text-[7px] text-white/30 uppercase tracking-widest">sec</span>
-                  </div>
-                </div>
-
-                <Loader2 className="h-6 w-6 text-yellow-500 animate-spin mx-auto" />
-                <p className="text-[10px] font-black text-yellow-500/60 uppercase tracking-[0.5em]">
-                  Scanning Neural Grid For Opponent
-                </p>
-                <p className="text-[8px] text-white/20 uppercase tracking-[0.3em]">
-                  {battle?.field} • {battle?.subfield}
-                </p>
-              </motion.div>
-            ) : generatingQuestions ? (
-              <motion.div
-                animate={{ opacity: [0.5, 1, 0.5] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-                className="space-y-3"
-              >
-                <Zap className="h-8 w-8 text-yellow-500 animate-pulse mx-auto" />
-                <p className="text-[10px] font-black text-yellow-500/60 uppercase tracking-[0.5em]">
-                  Generating Battle Questions
-                </p>
-              </motion.div>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="space-y-3"
-              >
-                <Swords className="h-8 w-8 text-red-500 mx-auto" />
-                <p className="text-[10px] font-black text-red-400 uppercase tracking-[0.5em]">
-                  Opponent Found — Preparing Arena
-                </p>
-              </motion.div>
-            )}
           </div>
         </div>
       </main>
