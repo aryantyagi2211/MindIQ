@@ -18,6 +18,7 @@ import ChallengeView from "./pages/ChallengeView";
 import BattleMatchmaking from "./pages/BattleMatchmaking";
 import BattleFight from "./pages/BattleFight";
 import BattleResult from "./pages/BattleResult";
+import Lobby from "./pages/Lobby";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,7 @@ const App = () => (
             <Route path="/battle/:battleId" element={<BattleMatchmaking />} />
             <Route path="/battle/:battleId/fight" element={<BattleFight />} />
             <Route path="/battle/:battleId/result" element={<BattleResult />} />
+            <Route path="/lobby" element={<Lobby />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

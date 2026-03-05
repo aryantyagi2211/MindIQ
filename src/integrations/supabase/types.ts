@@ -130,6 +130,116 @@ export type Database = {
           },
         ]
       }
+      friend_requests: {
+        Row: {
+          created_at: string
+          from_user_id: string
+          id: string
+          status: string
+          to_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          from_user_id: string
+          id?: string
+          status?: string
+          to_user_id: string
+        }
+        Update: {
+          created_at?: string
+          from_user_id?: string
+          id?: string
+          status?: string
+          to_user_id?: string
+        }
+        Relationships: []
+      }
+      friends: {
+        Row: {
+          created_at: string
+          friend_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          friend_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          friend_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      lobbies: {
+        Row: {
+          created_at: string
+          difficulty: string
+          field: string
+          host_id: string
+          id: string
+          status: string
+          subfield: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          difficulty?: string
+          field?: string
+          host_id: string
+          id?: string
+          status?: string
+          subfield?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          difficulty?: string
+          field?: string
+          host_id?: string
+          id?: string
+          status?: string
+          subfield?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      lobby_members: {
+        Row: {
+          id: string
+          joined_at: string
+          lobby_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          lobby_id: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          lobby_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lobby_members_lobby_id_fkey"
+            columns: ["lobby_id"]
+            isOneToOne: false
+            referencedRelation: "lobbies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -137,6 +247,8 @@ export type Database = {
           created_at: string
           id: string
           instagram_url: string | null
+          is_online: boolean | null
+          last_seen: string | null
           linkedin_url: string | null
           links: Json | null
           onboarding_complete: boolean
@@ -152,6 +264,8 @@ export type Database = {
           created_at?: string
           id?: string
           instagram_url?: string | null
+          is_online?: boolean | null
+          last_seen?: string | null
           linkedin_url?: string | null
           links?: Json | null
           onboarding_complete?: boolean
@@ -167,6 +281,8 @@ export type Database = {
           created_at?: string
           id?: string
           instagram_url?: string | null
+          is_online?: boolean | null
+          last_seen?: string | null
           linkedin_url?: string | null
           links?: Json | null
           onboarding_complete?: boolean
