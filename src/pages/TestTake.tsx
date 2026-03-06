@@ -97,6 +97,7 @@ export default function TestTake() {
             setTimeData(new Array(data.questions.length).fill(0));
             setTimeLeft(data.questions[0].timeLimit);
             setQuestionStartTime(Date.now());
+            setLoading(false);
           } else {
             // Member waits for questions
             if (lobby.questions && lobby.status === "in_progress") {
@@ -106,31 +107,67 @@ export default function TestTake() {
               setTimeData(new Array(lobby.questions.length).fill(0));
               setTimeLeft(lobby.questions[0].timeLimit);
               setQuestionStartTime(Date.now());
+              setWaitingForTest(false);
+              setLoading(false);
             } else {
               // Wait for host to generate questions
               setWaitingForTest(true);
+              setLoading(false);
               
               // Subscribe to lobby changes
               const channel = supabase
-                .channel(`lobby-test-${lobbyId}`)
+                .channel(`lobby-test-start-${lobbyId}`)
                 .on(
                   "postgres_changes",
-                  { event: "UPDATE", schema: "public", table: "lobbies", filter: `id=eq.${lobbyId}` },
+                  { 
+                    event: "UPDATE", 
+                    schema: "public", 
+                    table: "lobbies", 
+                    filter: `id=eq.${lobbyId}` 
+                  },
                   (payload: any) => {
+                    console.log("Lobby update received:", payload);
                     if (payload.new.questions && payload.new.status === "in_progress") {
+                      console.log("Questions received, starting test");
                       setQuestions(payload.new.questions);
                       setAnswers(new Array(payload.new.questions.length).fill(""));
                       setTimeData(new Array(payload.new.questions.length).fill(0));
                       setTimeLeft(payload.new.questions[0].timeLimit);
                       setQuestionStartTime(Date.now());
                       setWaitingForTest(false);
-                      supabase.removeChannel(channel);
                     }
                   }
                 )
-                .subscribe();
+                .subscribe((status) => {
+                  console.log("Subscription status:", status);
+                });
 
-              return () => { supabase.removeChannel(channel); };
+              // Polling fallback - check every 2 seconds
+              const pollInterval = setInterval(async () => {
+                const { data: updatedLobby } = await supabase
+                  .from("lobbies")
+                  .select("questions, status")
+                  .eq("id", lobbyId)
+                  .single() as any;
+
+                if (updatedLobby?.questions && updatedLobby.status === "in_progress") {
+                  console.log("Questions found via polling");
+                  setQuestions(updatedLobby.questions);
+                  setAnswers(new Array(updatedLobby.questions.length).fill(""));
+                  setTimeData(new Array(updatedLobby.questions.length).fill(0));
+                  setTimeLeft(updatedLobby.questions[0].timeLimit);
+                  setQuestionStartTime(Date.now());
+                  setWaitingForTest(false);
+                  clearInterval(pollInterval);
+                }
+              }, 2000);
+
+              // Cleanup function
+              return () => { 
+                console.log("Cleaning up subscription and polling");
+                clearInterval(pollInterval);
+                supabase.removeChannel(channel); 
+              };
             }
           }
         } else {
@@ -145,12 +182,12 @@ export default function TestTake() {
           setTimeData(new Array(data.questions.length).fill(0));
           setTimeLeft(data.questions[0].timeLimit);
           setQuestionStartTime(Date.now());
+          setLoading(false);
         }
       } catch (e: unknown) {
         const errorMessage = e instanceof Error ? e.message : "Unknown error";
         toast.error("Failed to generate questions: " + errorMessage);
         navigate(isLobbyTest ? "/lobby" : "/test/setup");
-      } finally {
         setLoading(false);
       }
     };
