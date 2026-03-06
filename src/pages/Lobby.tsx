@@ -184,7 +184,7 @@ export default function Lobby() {
           .eq("user_id", p.user_id)
           .order("created_at", { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
         return { ...p, testResult: result };
       })
     );

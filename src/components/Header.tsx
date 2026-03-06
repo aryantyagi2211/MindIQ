@@ -25,7 +25,7 @@ export default function Header() {
   useEffect(() => {
     if (!user) return;
     supabase.from("test_results").select("percentile").eq("user_id", user.id)
-      .order("percentile", { ascending: false }).limit(1).single()
+      .order("percentile", { ascending: false }).limit(1).maybeSingle()
       .then(({ data }) => {
         if (data && data.percentile >= 95) setIsTopPerformer(true);
       });

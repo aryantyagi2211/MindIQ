@@ -96,7 +96,7 @@ export default function BattleMatchmaking() {
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
       setMyStats(myTestResults);
 
       if (data.status === "active" && data.questions) {
@@ -154,7 +154,7 @@ export default function BattleMatchmaking() {
       .eq("user_id", opponentId)
       .order("created_at", { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     setOpponent(profile);
     setOpponentStats(oppTestResults);

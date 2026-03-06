@@ -62,7 +62,7 @@ export default function TestResult() {
 
     // Fetch profile
     if (user) {
-      supabase.from("profiles").select("username, avatar_url").eq("user_id", user.id).single()
+      supabase.from("profiles").select("username, avatar_url").eq("user_id", user.id).maybeSingle()
         .then(({ data }) => {
           if (data) {
             setUsername(data.username);
