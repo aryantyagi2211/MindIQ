@@ -101,7 +101,26 @@ export function useFriends() {
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    // Subscribe to profile changes for real-time online/offline status of friends
+    const presenceChannel = supabase
+      .channel("friends-presence")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "profiles" },
+        (payload: any) => {
+          setFriends(prev => prev.map(f =>
+            f.user_id === payload.new.user_id
+              ? { ...f, is_online: payload.new.is_online, last_seen: payload.new.last_seen }
+              : f
+          ));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+      supabase.removeChannel(presenceChannel);
+    };
   }, [user, fetchFriends, fetchPendingRequests]);
 
   const sendFriendRequest = async (toUserId: string) => {
