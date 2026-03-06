@@ -92,6 +92,7 @@ export default function Lobby() {
 
         if (activeLobby) {
           setLobbyId(activeLobby.id);
+          setLobbyHostId(activeLobby.host_id);
           fetchLobbyMembers(activeLobby.id);
           return;
         }
