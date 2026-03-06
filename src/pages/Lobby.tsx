@@ -53,12 +53,12 @@ export default function Lobby() {
     return () => { supabase.removeChannel(channel); };
   }, [fetchPlayers]);
 
-  // Create or fetch existing lobby
+  // Create or fetch existing lobby (as host or joined member)
   useEffect(() => {
     if (!user) return;
 
     const initLobby = async () => {
-      // Check if user has an active lobby
+      // Check if user has an active lobby as host
       const { data: existing } = await supabase
         .from("lobbies")
         .select("*")
@@ -69,24 +69,48 @@ export default function Lobby() {
       if (existing && existing.length > 0) {
         setLobbyId(existing[0].id);
         fetchLobbyMembers(existing[0].id);
-      } else {
-        // Create a new lobby
-        const { data: newLobby } = await supabase
+        return;
+      }
+
+      // Check if user has joined someone else's lobby
+      const { data: memberships } = await supabase
+        .from("lobby_members")
+        .select("lobby_id")
+        .eq("user_id", user.id)
+        .eq("status", "joined") as any;
+
+      if (memberships && memberships.length > 0) {
+        // Check if that lobby is still active
+        const { data: activeLobby } = await supabase
           .from("lobbies")
-          .insert({ host_id: user.id, field: selectedField, subfield: "General" } as any)
-          .select()
+          .select("*")
+          .eq("id", memberships[0].lobby_id)
+          .eq("status", "waiting")
           .single() as any;
 
-        if (newLobby) {
-          setLobbyId(newLobby.id);
-          // Add self as member
-          await supabase.from("lobby_members").insert({
-            lobby_id: newLobby.id,
-            user_id: user.id,
-            status: "joined",
-          } as any);
-          fetchLobbyMembers(newLobby.id);
+        if (activeLobby) {
+          setLobbyId(activeLobby.id);
+          fetchLobbyMembers(activeLobby.id);
+          return;
         }
+      }
+
+      // Create a new lobby
+      const { data: newLobby } = await supabase
+        .from("lobbies")
+        .insert({ host_id: user.id, field: selectedField, subfield: "General" } as any)
+        .select()
+        .single() as any;
+
+      if (newLobby) {
+        setLobbyId(newLobby.id);
+        // Add self as member
+        await supabase.from("lobby_members").insert({
+          lobby_id: newLobby.id,
+          user_id: user.id,
+          status: "joined",
+        } as any);
+        fetchLobbyMembers(newLobby.id);
       }
     };
 
