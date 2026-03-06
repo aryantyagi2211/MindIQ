@@ -1,4 +1,5 @@
-import { User, UserPlus, Plus, Check } from "lucide-react";
+import { useState, useEffect } from "react";
+import { User, UserPlus, Plus, Check, Clock } from "lucide-react";
 
 interface PlayerCardProps {
   player: {
@@ -9,6 +10,7 @@ interface PlayerCardProps {
   };
   isFriend: boolean;
   isInLobby: boolean;
+  inviteStatus?: "pending" | "accepted" | null;
   onInvite: () => void;
   onSendRequest?: () => void;
   showAddFriend?: boolean;
@@ -18,10 +20,43 @@ export default function PlayerCard({
   player,
   isFriend,
   isInLobby,
+  inviteStatus,
   onInvite,
   onSendRequest,
   showAddFriend,
 }: PlayerCardProps) {
+  const [localInviteStatus, setLocalInviteStatus] = useState<"pending" | "accepted" | null>(inviteStatus || null);
+  const [canReinvite, setCanReinvite] = useState(true);
+
+  useEffect(() => {
+    setLocalInviteStatus(inviteStatus || null);
+  }, [inviteStatus]);
+
+  const handleInvite = () => {
+    if (!canReinvite) return;
+    
+    setLocalInviteStatus("pending");
+    setCanReinvite(false);
+    onInvite();
+
+    // Allow re-invite after 3 seconds if not accepted
+    setTimeout(() => {
+      setLocalInviteStatus((current) => {
+        if (current === "pending") {
+          setCanReinvite(true);
+          return null;
+        }
+        return current;
+      });
+    }, 3000);
+  };
+
+  // Update status when player joins lobby
+  useEffect(() => {
+    if (isInLobby && localInviteStatus === "pending") {
+      setLocalInviteStatus("accepted");
+    }
+  }, [isInLobby, localInviteStatus]);
   return (
     <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/5 hover:border-white/10 transition-all group">
       {/* Avatar with online indicator */}
@@ -60,20 +95,28 @@ export default function PlayerCard({
           </button>
         )}
         {isInLobby ? (
-          <div className="p-2 rounded-lg bg-green-500/10 border border-green-500/30">
+          <div className="p-2 rounded-lg bg-green-500/10 border border-green-500/30" title="In lobby">
             <Check className="h-3.5 w-3.5 text-green-400" />
+          </div>
+        ) : localInviteStatus === "pending" ? (
+          <div className="p-2 rounded-lg bg-yellow-500/10 border border-yellow-500/30 animate-pulse" title="Invite pending">
+            <Clock className="h-3.5 w-3.5 text-yellow-400" />
           </div>
         ) : player.is_online ? (
           <button
-            onClick={onInvite}
-            className="p-2 rounded-lg bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/20 hover:border-yellow-500/40 transition-all"
-            title="Invite to lobby"
+            onClick={handleInvite}
+            disabled={!canReinvite}
+            className={`p-2 rounded-lg transition-all ${
+              canReinvite
+                ? "bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/20 hover:border-yellow-500/40"
+                : "bg-white/5 border border-white/5 opacity-50 cursor-not-allowed"
+            }`}
+            title={canReinvite ? "Invite to lobby" : "Wait to re-invite"}
           >
-            <Plus className="h-3.5 w-3.5 text-yellow-400" />
+            <Plus className={`h-3.5 w-3.5 ${canReinvite ? "text-yellow-400" : "text-white/20"}`} />
           </button>
         ) : (
           <button
-            onClick={onInvite}
             className="p-2 rounded-lg bg-white/5 border border-white/5 opacity-50 cursor-not-allowed"
             disabled
             title="Player is offline"

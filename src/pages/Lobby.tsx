@@ -28,6 +28,7 @@ export default function Lobby() {
   const [lobbyMembers, setLobbyMembers] = useState<any[]>([]);
   const [lobbyHostId, setLobbyHostId] = useState<string | null>(null);
   const [selectedField, setSelectedField] = useState("Technology");
+  const [inviteStatuses, setInviteStatuses] = useState<Record<string, "pending" | "accepted">>({});
 
   // Fetch all world players
   const fetchPlayers = useCallback(async () => {
@@ -189,6 +190,17 @@ export default function Lobby() {
     );
 
     setLobbyMembers(membersWithResults);
+
+    // Update invite statuses - mark joined members as accepted
+    setInviteStatuses(prev => {
+      const updated = { ...prev };
+      userIds.forEach((uid: string) => {
+        if (updated[uid] === "pending") {
+          updated[uid] = "accepted";
+        }
+      });
+      return updated;
+    });
   }, []);
 
   // Subscribe to lobby changes
@@ -236,6 +248,8 @@ export default function Lobby() {
       toast.error("Failed to invite player");
     } else {
       toast.success("Invite sent!");
+      // Mark as pending
+      setInviteStatuses(prev => ({ ...prev, [userId]: "pending" }));
     }
   };
 
@@ -272,6 +286,7 @@ export default function Lobby() {
     setLobbyId(null);
     setLobbyMembers([]);
     setLobbyHostId(null);
+    setInviteStatuses({});
 
     // Create a fresh lobby for the user
     const { data: newLobby } = await supabase
@@ -351,6 +366,7 @@ export default function Lobby() {
             onSendFriendRequest={sendFriendRequest}
             lobbyMembers={lobbyMembers.map(m => m.user_id)}
             currentUserId={user.id}
+            inviteStatuses={inviteStatuses}
           />
 
           <LobbyArea

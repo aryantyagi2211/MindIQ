@@ -15,6 +15,7 @@ interface LobbySidebarProps {
   onSendFriendRequest: (userId: string) => void;
   lobbyMembers: string[];
   currentUserId?: string;
+  inviteStatuses?: Record<string, "pending" | "accepted">;
 }
 
 export default function LobbySidebar({
@@ -28,16 +29,41 @@ export default function LobbySidebar({
   onSendFriendRequest,
   lobbyMembers,
   currentUserId,
+  inviteStatuses = {},
 }: LobbySidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredWorld = worldPlayers.filter(p =>
-    p.username?.toLowerCase().includes(searchQuery.toLowerCase()) &&
-    p.user_id !== currentUserId
-  );
+  // Check if user is truly online based on last_seen timestamp
+  const isTrulyOnline = (player: any) => {
+    if (!player.is_online) return false;
+    const now = new Date();
+    const lastSeen = new Date(player.last_seen);
+    const secondsSinceLastSeen = (now.getTime() - lastSeen.getTime()) / 1000;
+    return secondsSinceLastSeen < 45; // Consider online if active within last 45 seconds
+  };
 
+  const filteredWorld = worldPlayers
+    .filter(p =>
+      p.username?.toLowerCase().includes(searchQuery.toLowerCase()) &&
+      p.user_id !== currentUserId
+    )
+    .map(p => ({ ...p, is_online: isTrulyOnline(p) })) // Update online status based on last_seen
+    .sort((a, b) => (b.is_online ? 1 : 0) - (a.is_online ? 1 : 0));
+
+  // Show only online friends (with last_seen check for accuracy)
+  const now = new Date();
   const filteredFriends = friends
-    .filter(f => f.username?.toLowerCase().includes(searchQuery.toLowerCase()))
+    .filter(f => {
+      // Check if user matches search
+      const matchesSearch = f.username?.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      // Check if truly online (is_online flag AND last_seen within last 45 seconds)
+      const lastSeen = new Date(f.last_seen);
+      const secondsSinceLastSeen = (now.getTime() - lastSeen.getTime()) / 1000;
+      const isTrulyOnline = f.is_online && secondsSinceLastSeen < 45;
+      
+      return matchesSearch && isTrulyOnline;
+    })
     .sort((a, b) => (b.is_online ? 1 : 0) - (a.is_online ? 1 : 0));
 
   return (
@@ -118,6 +144,7 @@ export default function LobbySidebar({
                     player={player}
                     isFriend={friends.some(f => f.user_id === player.user_id)}
                     isInLobby={lobbyMembers.includes(player.user_id)}
+                    inviteStatus={inviteStatuses[player.user_id] || null}
                     onInvite={() => onInviteToLobby(player.user_id)}
                     onSendRequest={() => onSendFriendRequest(player.user_id)}
                     showAddFriend
@@ -142,6 +169,7 @@ export default function LobbySidebar({
                     player={friend}
                     isFriend
                     isInLobby={lobbyMembers.includes(friend.user_id)}
+                    inviteStatus={inviteStatuses[friend.user_id] || null}
                     onInvite={() => onInviteToLobby(friend.user_id)}
                   />
                 </motion.div>
