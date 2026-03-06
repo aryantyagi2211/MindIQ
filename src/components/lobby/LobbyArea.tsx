@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { User, X, Play, Crown, Users } from "lucide-react";
+import { User, X, Play, Crown, Users, LogOut } from "lucide-react";
 import ResultCard from "@/components/ResultCard";
 import { getTier } from "@/lib/constants";
 
@@ -17,6 +17,7 @@ interface LobbyAreaProps {
   isHost: boolean;
   onRemoveMember: (userId: string) => void;
   onStartTest: () => void;
+  onExitLobby: () => void;
   lobbyField: string;
 }
 
@@ -26,6 +27,7 @@ export default function LobbyArea({
   isHost,
   onRemoveMember,
   onStartTest,
+  onExitLobby,
   lobbyField,
 }: LobbyAreaProps) {
   const emptySlots = maxMembers - members.length;
@@ -47,12 +49,23 @@ export default function LobbyArea({
             </p>
           </div>
         </div>
-        {isHost && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-yellow-500/10 border border-yellow-500/20">
-            <Crown className="h-3 w-3 text-yellow-400" />
-            <span className="text-[10px] font-black text-yellow-400 uppercase tracking-widest">Host</span>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {isHost && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-yellow-500/10 border border-yellow-500/20">
+              <Crown className="h-3 w-3 text-yellow-400" />
+              <span className="text-[10px] font-black text-yellow-400 uppercase tracking-widest">Host</span>
+            </div>
+          )}
+          <button
+            onClick={onExitLobby}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 transition-all"
+          >
+            <LogOut className="h-3 w-3 text-red-400" />
+            <span className="text-[10px] font-black text-red-400 uppercase tracking-widest">
+              {isHost ? "Disband" : "Leave"}
+            </span>
+          </button>
+        </div>
       </div>
 
       {/* Member cards grid */}
@@ -64,7 +77,6 @@ export default function LobbyArea({
             animate={{ opacity: 1, scale: 1 }}
             className="relative"
           >
-            {/* Remove button (host only, not self) */}
             {isHost && member.user_id !== members[0]?.user_id && (
               <button
                 onClick={() => onRemoveMember(member.user_id)}
@@ -113,13 +125,12 @@ export default function LobbyArea({
                   }`} />
                 </div>
                 <p className="text-sm font-black text-white uppercase tracking-wider">{member.username}</p>
-                <p className="text-[9px] text-white/30 uppercase tracking-widest">Waiting for test...</p>
+                <p className="text-[9px] text-white/30 uppercase tracking-widest">No test taken yet</p>
               </div>
             )}
           </motion.div>
         ))}
 
-        {/* Empty slots */}
         {Array.from({ length: emptySlots }).map((_, i) => (
           <motion.div
             key={`empty-${i}`}
@@ -136,7 +147,7 @@ export default function LobbyArea({
         ))}
       </div>
 
-      {/* Start Button - bottom right */}
+      {/* Start Button */}
       {isHost && members.length >= 1 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
