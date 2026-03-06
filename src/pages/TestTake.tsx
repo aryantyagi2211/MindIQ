@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Question } from "@/lib/constants";
-import { Loader2, Zap, Brain } from "lucide-react";
+import { Loader2, Zap, Brain, Users } from "lucide-react";
 import Header from "@/components/Header";
+import { useAuth } from "@/hooks/useAuth";
 
 function TimerRing({ timeLeft, timeLimit }: { timeLeft: number; timeLimit: number }) {
   const pct = timeLeft / timeLimit;
@@ -32,6 +33,7 @@ function TimerRing({ timeLeft, timeLimit }: { timeLeft: number; timeLimit: numbe
 export default function TestTake() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const state = location.state as { 
     qualification?: string; 
     difficulty?: string; 
@@ -39,9 +41,11 @@ export default function TestTake() {
     examType?: string; 
     ageGroup?: string;
     challengeId?: string;
+    lobbyId?: string;
+    isLobbyTest?: boolean;
   } | null;
   
-  const { qualification, difficulty, stream, examType = "mcq", ageGroup, challengeId } = state || {};
+  const { qualification, difficulty, stream, examType = "mcq", ageGroup, challengeId, lobbyId, isLobbyTest } = state || {};
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -50,63 +54,188 @@ export default function TestTake() {
   const [timeLeft, setTimeLeft] = useState(0);
   const [questionStartTime, setQuestionStartTime] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [isHost, setIsHost] = useState(false);
+  const [waitingForTest, setWaitingForTest] = useState(false);
 
 
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        const { data, error } = await supabase.functions.invoke("generate-questions", {
-          body: { qualification: qualification || ageGroup, stream, difficulty, examType },
-        });
-        if (error) throw error;
-        if (data.error) throw new Error(data.error);
-        setQuestions(data.questions);
-        setAnswers(new Array(data.questions.length).fill(""));
-        setTimeData(new Array(data.questions.length).fill(0));
-        setTimeLeft(data.questions[0].timeLimit);
-        setQuestionStartTime(Date.now());
+        if (isLobbyTest && lobbyId) {
+          // Lobby mode: Check if user is host
+          const { data: lobby } = await supabase
+            .from("lobbies")
+            .select("host_id, questions, status")
+            .eq("id", lobbyId)
+            .single() as any;
+
+          if (!lobby) throw new Error("Lobby not found");
+
+          const userIsHost = lobby.host_id === user?.id;
+          setIsHost(userIsHost);
+
+          if (userIsHost) {
+            // Host generates questions
+            const { data, error } = await supabase.functions.invoke("generate-questions", {
+              body: { qualification: qualification || ageGroup, stream, difficulty, examType },
+            });
+            if (error) throw error;
+            if (data.error) throw new Error(data.error);
+
+            // Save questions to lobby
+            await supabase
+              .from("lobbies")
+              .update({
+                questions: data.questions,
+                status: "in_progress",
+                test_started_at: new Date().toISOString()
+              } as any)
+              .eq("id", lobbyId);
+
+            setQuestions(data.questions);
+            setAnswers(new Array(data.questions.length).fill(""));
+            setTimeData(new Array(data.questions.length).fill(0));
+            setTimeLeft(data.questions[0].timeLimit);
+            setQuestionStartTime(Date.now());
+          } else {
+            // Member waits for questions
+            if (lobby.questions && lobby.status === "in_progress") {
+              // Questions already available
+              setQuestions(lobby.questions);
+              setAnswers(new Array(lobby.questions.length).fill(""));
+              setTimeData(new Array(lobby.questions.length).fill(0));
+              setTimeLeft(lobby.questions[0].timeLimit);
+              setQuestionStartTime(Date.now());
+            } else {
+              // Wait for host to generate questions
+              setWaitingForTest(true);
+              
+              // Subscribe to lobby changes
+              const channel = supabase
+                .channel(`lobby-test-${lobbyId}`)
+                .on(
+                  "postgres_changes",
+                  { event: "UPDATE", schema: "public", table: "lobbies", filter: `id=eq.${lobbyId}` },
+                  (payload: any) => {
+                    if (payload.new.questions && payload.new.status === "in_progress") {
+                      setQuestions(payload.new.questions);
+                      setAnswers(new Array(payload.new.questions.length).fill(""));
+                      setTimeData(new Array(payload.new.questions.length).fill(0));
+                      setTimeLeft(payload.new.questions[0].timeLimit);
+                      setQuestionStartTime(Date.now());
+                      setWaitingForTest(false);
+                      supabase.removeChannel(channel);
+                    }
+                  }
+                )
+                .subscribe();
+
+              return () => { supabase.removeChannel(channel); };
+            }
+          }
+        } else {
+          // Solo mode: Generate questions normally
+          const { data, error } = await supabase.functions.invoke("generate-questions", {
+            body: { qualification: qualification || ageGroup, stream, difficulty, examType },
+          });
+          if (error) throw error;
+          if (data.error) throw new Error(data.error);
+          setQuestions(data.questions);
+          setAnswers(new Array(data.questions.length).fill(""));
+          setTimeData(new Array(data.questions.length).fill(0));
+          setTimeLeft(data.questions[0].timeLimit);
+          setQuestionStartTime(Date.now());
+        }
       } catch (e: unknown) {
         const errorMessage = e instanceof Error ? e.message : "Unknown error";
         toast.error("Failed to generate questions: " + errorMessage);
-        navigate("/test/setup");
+        navigate(isLobbyTest ? "/lobby" : "/test/setup");
       } finally {
         setLoading(false);
       }
     };
     fetchQuestions();
-  }, [qualification, ageGroup, stream, difficulty, examType, navigate]);
+  }, [qualification, ageGroup, stream, difficulty, examType, navigate, isLobbyTest, lobbyId, user]);
 
-  const handleNext = useCallback(() => {
+  const handleNext = useCallback(async () => {
     if (questions.length === 0) return;
     const timeTaken = Math.round((Date.now() - questionStartTime) / 1000);
     const newTimeData = [...timeData];
     newTimeData[currentIndex] = timeTaken;
     setTimeData(newTimeData);
 
-
-
     if (currentIndex < questions.length - 1) {
       setCurrentIndex(prev => prev + 1);
       setTimeLeft(questions[currentIndex + 1].timeLimit);
       setQuestionStartTime(Date.now());
-
     } else {
       // Submit
       const finalTimeData = newTimeData;
       const finalAnswers = [...answers];
-      navigate("/test/result", {
-        state: {
-          questions,
-          answers: finalAnswers,
-          timeData: finalTimeData,
-          stream,
-          qualification: qualification || ageGroup,
-          difficulty,
-          challengeId: challengeId
-        },
-      });
+
+      if (isLobbyTest && lobbyId && user) {
+        // Lobby mode: Save to lobby_test_results and navigate to lobby results
+        try {
+          // Save answers and time data
+          const { data: existingResult } = await supabase
+            .from("lobby_test_results" as any)
+            .select("id")
+            .eq("lobby_id", lobbyId)
+            .eq("user_id", user.id)
+            .single() as any;
+
+          if (existingResult) {
+            // Update existing
+            await supabase
+              .from("lobby_test_results" as any)
+              .update({
+                answers: finalAnswers,
+                time_data: finalTimeData
+              } as any)
+              .eq("id", existingResult.id);
+          } else {
+            // Insert new
+            await supabase
+              .from("lobby_test_results" as any)
+              .insert({
+                lobby_id: lobbyId,
+                user_id: user.id,
+                answers: finalAnswers,
+                time_data: finalTimeData
+              } as any);
+          }
+
+          // Navigate to lobby results page
+          navigate(`/lobby/results/${lobbyId}`, {
+            state: {
+              questions,
+              answers: finalAnswers,
+              timeData: finalTimeData,
+              stream,
+              qualification: qualification || ageGroup,
+              difficulty
+            }
+          });
+        } catch (error) {
+          console.error("Error saving lobby test results:", error);
+          toast.error("Failed to save results");
+        }
+      } else {
+        // Solo mode: Navigate to regular results
+        navigate("/test/result", {
+          state: {
+            questions,
+            answers: finalAnswers,
+            timeData: finalTimeData,
+            stream,
+            qualification: qualification || ageGroup,
+            difficulty,
+            challengeId: challengeId
+          },
+        });
+      }
     }
-  }, [currentIndex, questions, answers, timeData, questionStartTime, navigate, stream, qualification, ageGroup, difficulty, challengeId]);
+  }, [currentIndex, questions, answers, timeData, questionStartTime, navigate, stream, qualification, ageGroup, difficulty, challengeId, isLobbyTest, lobbyId, user]);
 
   // Timer countdown
   useEffect(() => {
@@ -130,7 +259,7 @@ export default function TestTake() {
     setTimeout(handleNext, 300);
   };
 
-  if (loading) {
+  if (loading || waitingForTest) {
     return (
       <div className="min-h-screen bg-[#010101] text-white relative overflow-hidden flex items-center justify-center">
         {/* Background Effects */}
@@ -165,8 +294,14 @@ export default function TestTake() {
           {/* Main Message */}
           <div className="space-y-4">
             <h2 className="text-3xl md:text-4xl font-black italic tracking-tight text-white">
-              AI is Compiling Your Paper...
+              {waitingForTest ? "Waiting for Host to Start..." : "AI is Compiling Your Paper..."}
             </h2>
+            {isLobbyTest && (
+              <div className="flex items-center justify-center gap-2 text-yellow-500/80 text-sm font-bold uppercase tracking-[0.3em]">
+                <Users className="h-4 w-4" />
+                <span>Lobby Test</span>
+              </div>
+            )}
             <p className="text-yellow-500/80 text-sm md:text-base font-bold uppercase tracking-[0.3em]">
               {stream || "All Subjects"} • {qualification}
             </p>
@@ -176,34 +311,36 @@ export default function TestTake() {
           </div>
 
           {/* Progress Animation */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-center gap-2">
-              {[0, 1, 2].map((i) => (
+          {!waitingForTest && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-center gap-2">
+                {[0, 1, 2].map((i) => (
+                  <motion.div
+                    key={i}
+                    animate={{ 
+                      scale: [1, 1.5, 1],
+                      opacity: [0.3, 1, 0.3]
+                    }}
+                    transition={{ 
+                      duration: 1.5, 
+                      repeat: Infinity,
+                      delay: i * 0.2
+                    }}
+                    className="w-2 h-2 bg-yellow-500 rounded-full"
+                  />
+                ))}
+              </div>
+              
+              {/* Simulated Progress Bar */}
+              <div className="w-full max-w-md mx-auto h-1 bg-white/5 rounded-full overflow-hidden border border-white/10">
                 <motion.div
-                  key={i}
-                  animate={{ 
-                    scale: [1, 1.5, 1],
-                    opacity: [0.3, 1, 0.3]
-                  }}
-                  transition={{ 
-                    duration: 1.5, 
-                    repeat: Infinity,
-                    delay: i * 0.2
-                  }}
-                  className="w-2 h-2 bg-yellow-500 rounded-full"
+                  animate={{ width: ["0%", "100%"] }}
+                  transition={{ duration: 3, ease: "easeInOut" }}
+                  className="h-full bg-gradient-to-r from-yellow-500 to-yellow-600 shadow-[0_0_15px_rgba(255,191,0,0.8)]"
                 />
-              ))}
+              </div>
             </div>
-            
-            {/* Simulated Progress Bar */}
-            <div className="w-full max-w-md mx-auto h-1 bg-white/5 rounded-full overflow-hidden border border-white/10">
-              <motion.div
-                animate={{ width: ["0%", "100%"] }}
-                transition={{ duration: 3, ease: "easeInOut" }}
-                className="h-full bg-gradient-to-r from-yellow-500 to-yellow-600 shadow-[0_0_15px_rgba(255,191,0,0.8)]"
-              />
-            </div>
-          </div>
+          )}
 
           {/* Status Messages */}
           <motion.div
@@ -211,7 +348,7 @@ export default function TestTake() {
             transition={{ duration: 2, repeat: Infinity }}
             className="text-white/30 text-xs font-black uppercase tracking-[0.5em]"
           >
-            Neural Network Active
+            {waitingForTest ? "Standby Mode Active" : "Neural Network Active"}
           </motion.div>
         </motion.div>
       </div>
