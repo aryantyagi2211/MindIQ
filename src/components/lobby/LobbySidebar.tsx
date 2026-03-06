@@ -36,9 +36,9 @@ export default function LobbySidebar({
     p.user_id !== currentUserId
   );
 
-  const filteredFriends = friends.filter(f =>
-    f.username?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredFriends = friends
+    .filter(f => f.username?.toLowerCase().includes(searchQuery.toLowerCase()))
+    .sort((a, b) => (b.is_online ? 1 : 0) - (a.is_online ? 1 : 0));
 
   return (
     <div className="w-full lg:w-80 h-full flex flex-col bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden">
