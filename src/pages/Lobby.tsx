@@ -26,6 +26,7 @@ export default function Lobby() {
   const [worldPlayers, setWorldPlayers] = useState<any[]>([]);
   const [lobbyId, setLobbyId] = useState<string | null>(null);
   const [lobbyMembers, setLobbyMembers] = useState<any[]>([]);
+  const [lobbyHostId, setLobbyHostId] = useState<string | null>(null);
   const [selectedField, setSelectedField] = useState("Technology");
 
   // Fetch all world players + real-time presence
@@ -68,6 +69,7 @@ export default function Lobby() {
 
       if (existing && existing.length > 0) {
         setLobbyId(existing[0].id);
+        setLobbyHostId(existing[0].host_id);
         fetchLobbyMembers(existing[0].id);
         return;
       }
@@ -282,7 +284,7 @@ export default function Lobby() {
           <LobbyArea
             members={lobbyMembers}
             maxMembers={MAX_LOBBY_MEMBERS}
-            isHost={true}
+            isHost={lobbyHostId === user.id}
             onRemoveMember={handleRemoveMember}
             onStartTest={handleStartTest}
             lobbyField={selectedField}
