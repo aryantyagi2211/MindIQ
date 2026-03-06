@@ -312,7 +312,8 @@ export default function Lobby() {
       toast.error("Need at least 1 player to start");
       return;
     }
-    navigate(`/test/setup?lobby=${lobbyId}`);
+    // Navigate to test setup with lobby context
+    navigate(`/test/setup?lobbyId=${lobbyId}`);
   };
 
   if (!user) {

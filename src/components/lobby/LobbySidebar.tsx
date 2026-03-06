@@ -50,21 +50,27 @@ export default function LobbySidebar({
     .map(p => ({ ...p, is_online: isTrulyOnline(p) })) // Update online status based on last_seen
     .sort((a, b) => (b.is_online ? 1 : 0) - (a.is_online ? 1 : 0));
 
-  // Show only online friends (with last_seen check for accuracy)
+  // Show both online and offline friends, sorted by online status
   const now = new Date();
   const filteredFriends = friends
     .filter(f => {
       // Check if user matches search
-      const matchesSearch = f.username?.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      // Check if truly online (is_online flag AND last_seen within last 45 seconds)
+      return f.username?.toLowerCase().includes(searchQuery.toLowerCase());
+    })
+    .map(f => {
+      // Update online status based on last_seen for accuracy
       const lastSeen = new Date(f.last_seen);
       const secondsSinceLastSeen = (now.getTime() - lastSeen.getTime()) / 1000;
       const isTrulyOnline = f.is_online && secondsSinceLastSeen < 45;
-      
-      return matchesSearch && isTrulyOnline;
+      return { ...f, is_online: isTrulyOnline };
     })
-    .sort((a, b) => (b.is_online ? 1 : 0) - (a.is_online ? 1 : 0));
+    .sort((a, b) => {
+      // Sort: online first, then by username
+      if (a.is_online === b.is_online) {
+        return (a.username || '').localeCompare(b.username || '');
+      }
+      return b.is_online ? 1 : -1;
+    });
 
   return (
     <div className="w-full lg:w-80 h-full flex flex-col bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden">

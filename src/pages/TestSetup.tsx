@@ -1,17 +1,42 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { QUALIFICATIONS, QUALIFICATION_FIELDS, DIFFICULTIES, type Qualification } from "@/lib/constants";
 import Header from "@/components/Header";
 import { Brain, ChevronRight, Zap, GraduationCap, Construction } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function TestSetup() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { user } = useAuth();
+  const lobbyId = searchParams.get("lobbyId");
+  
   const [qualification, setQualification] = useState<Qualification>("Secondary School");
   const [difficulty, setDifficulty] = useState("Basic");
   const [stream, setStream] = useState("");
+  const [isHost, setIsHost] = useState(false);
+
+  useEffect(() => {
+    // Check if user is the host of this lobby
+    if (lobbyId && user) {
+      const checkHost = async () => {
+        const { data: lobby } = await supabase
+          .from("lobbies")
+          .select("host_id")
+          .eq("id", lobbyId)
+          .single() as any;
+        
+        if (lobby) {
+          setIsHost(lobby.host_id === user.id);
+        }
+      };
+      checkHost();
+    }
+  }, [lobbyId, user]);
 
   const availableStreams = QUALIFICATION_FIELDS[qualification] || [];
 
@@ -23,16 +48,51 @@ export default function TestSetup() {
 
   const canStart = qualification && difficulty;
 
-  const handleStart = () => {
+  const handleStart = async () => {
     if (!canStart) return;
-    navigate("/test/take", {
-      state: {
-        qualification,
-        difficulty,
-        stream: stream || undefined,
-        examType: "mcq"
+
+    if (lobbyId) {
+      // Lobby mode: Update lobby with test config and generate questions
+      try {
+        // Update lobby with configuration
+        const { error: updateError } = await supabase
+          .from("lobbies")
+          .update({
+            qualification,
+            difficulty,
+            stream: stream || null,
+            status: "generating_questions"
+          } as any)
+          .eq("id", lobbyId);
+
+        if (updateError) throw updateError;
+
+        // Navigate to test take page with lobby context
+        navigate("/test/take", {
+          state: {
+            qualification,
+            difficulty,
+            stream: stream || undefined,
+            examType: "mcq",
+            lobbyId,
+            isLobbyTest: true
+          }
+        });
+      } catch (error) {
+        console.error("Error starting lobby test:", error);
+        toast.error("Failed to start test");
       }
-    });
+    } else {
+      // Solo mode: Navigate normally
+      navigate("/test/take", {
+        state: {
+          qualification,
+          difficulty,
+          stream: stream || undefined,
+          examType: "mcq"
+        }
+      });
+    }
   };
 
   return (
