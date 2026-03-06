@@ -113,7 +113,7 @@ export default function LobbyArea({
                   }`} />
                 </div>
                 <p className="text-sm font-black text-white uppercase tracking-wider">{member.username}</p>
-                <p className="text-[9px] text-white/30 uppercase tracking-widest">No test results yet</p>
+                <p className="text-[9px] text-white/30 uppercase tracking-widest">Waiting for test...</p>
               </div>
             )}
           </motion.div>

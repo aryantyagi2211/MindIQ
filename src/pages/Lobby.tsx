@@ -27,19 +27,30 @@ export default function Lobby() {
   const [lobbyMembers, setLobbyMembers] = useState<any[]>([]);
   const [selectedField, setSelectedField] = useState("Technology");
 
-  // Fetch all world players
-  useEffect(() => {
-    const fetchPlayers = async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("user_id, username, avatar_url, country, is_online, last_seen")
-        .order("is_online", { ascending: false }) as any;
-      setWorldPlayers(data || []);
-    };
-    fetchPlayers();
-    const interval = setInterval(fetchPlayers, 10000);
-    return () => clearInterval(interval);
+  // Fetch all world players + real-time presence
+  const fetchPlayers = useCallback(async () => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("user_id, username, avatar_url, country, is_online, last_seen")
+      .order("is_online", { ascending: false }) as any;
+    setWorldPlayers(data || []);
   }, []);
+
+  useEffect(() => {
+    fetchPlayers();
+
+    // Subscribe to real-time profile changes (online/offline status)
+    const channel = supabase
+      .channel("profiles-presence")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "profiles" },
+        () => fetchPlayers()
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchPlayers]);
 
   // Create or fetch existing lobby
   useEffect(() => {
