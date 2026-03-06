@@ -167,13 +167,13 @@ export default function Lobby() {
     const { error } = await supabase.from("lobby_members").insert({
       lobby_id: lobbyId,
       user_id: userId,
-      status: "joined",
+      status: "invited",
     } as any);
 
     if (error) {
       toast.error("Failed to invite player");
     } else {
-      toast.success("Player added to lobby!");
+      toast.success("Invite sent!");
       fetchLobbyMembers(lobbyId);
     }
   };
@@ -274,6 +274,9 @@ export default function Lobby() {
         onAccept={acceptRequest}
         onReject={rejectRequest}
       />
+
+      {/* Lobby invite notifications */}
+      <LobbyInviteNotification />
     </div>
   );
 }
