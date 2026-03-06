@@ -19,6 +19,7 @@ import BattleMatchmaking from "./pages/BattleMatchmaking";
 import BattleFight from "./pages/BattleFight";
 import BattleResult from "./pages/BattleResult";
 import Lobby from "./pages/Lobby";
+import LobbyInviteNotification from "@/components/lobby/LobbyInviteNotification";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <LobbyInviteNotification />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
