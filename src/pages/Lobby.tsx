@@ -9,6 +9,7 @@ import Header from "@/components/Header";
 import LobbySidebar from "@/components/lobby/LobbySidebar";
 import LobbyArea from "@/components/lobby/LobbyArea";
 import Mailbox from "@/components/lobby/Mailbox";
+import LobbyInviteNotification from "@/components/lobby/LobbyInviteNotification";
 import { toast } from "sonner";
 
 const MAX_LOBBY_MEMBERS = 4;
@@ -25,6 +26,7 @@ export default function Lobby() {
   const [worldPlayers, setWorldPlayers] = useState<any[]>([]);
   const [lobbyId, setLobbyId] = useState<string | null>(null);
   const [lobbyMembers, setLobbyMembers] = useState<any[]>([]);
+  const [lobbyHostId, setLobbyHostId] = useState<string | null>(null);
   const [selectedField, setSelectedField] = useState("Technology");
 
   // Fetch all world players + real-time presence
@@ -52,12 +54,12 @@ export default function Lobby() {
     return () => { supabase.removeChannel(channel); };
   }, [fetchPlayers]);
 
-  // Create or fetch existing lobby
+  // Create or fetch existing lobby (as host or joined member)
   useEffect(() => {
     if (!user) return;
 
     const initLobby = async () => {
-      // Check if user has an active lobby
+      // Check if user has an active lobby as host
       const { data: existing } = await supabase
         .from("lobbies")
         .select("*")
@@ -67,25 +69,51 @@ export default function Lobby() {
 
       if (existing && existing.length > 0) {
         setLobbyId(existing[0].id);
+        setLobbyHostId(existing[0].host_id);
         fetchLobbyMembers(existing[0].id);
-      } else {
-        // Create a new lobby
-        const { data: newLobby } = await supabase
+        return;
+      }
+
+      // Check if user has joined someone else's lobby
+      const { data: memberships } = await supabase
+        .from("lobby_members")
+        .select("lobby_id")
+        .eq("user_id", user.id)
+        .eq("status", "joined") as any;
+
+      if (memberships && memberships.length > 0) {
+        // Check if that lobby is still active
+        const { data: activeLobby } = await supabase
           .from("lobbies")
-          .insert({ host_id: user.id, field: selectedField, subfield: "General" } as any)
-          .select()
+          .select("*")
+          .eq("id", memberships[0].lobby_id)
+          .eq("status", "waiting")
           .single() as any;
 
-        if (newLobby) {
-          setLobbyId(newLobby.id);
-          // Add self as member
-          await supabase.from("lobby_members").insert({
-            lobby_id: newLobby.id,
-            user_id: user.id,
-            status: "joined",
-          } as any);
-          fetchLobbyMembers(newLobby.id);
+        if (activeLobby) {
+          setLobbyId(activeLobby.id);
+          setLobbyHostId(activeLobby.host_id);
+          fetchLobbyMembers(activeLobby.id);
+          return;
         }
+      }
+
+      // Create a new lobby
+      const { data: newLobby } = await supabase
+        .from("lobbies")
+        .insert({ host_id: user.id, field: selectedField, subfield: "General" } as any)
+        .select()
+        .single() as any;
+
+      if (newLobby) {
+        setLobbyId(newLobby.id);
+        // Add self as member
+        await supabase.from("lobby_members").insert({
+          lobby_id: newLobby.id,
+          user_id: user.id,
+          status: "joined",
+        } as any);
+        fetchLobbyMembers(newLobby.id);
       }
     };
 
@@ -166,13 +194,13 @@ export default function Lobby() {
     const { error } = await supabase.from("lobby_members").insert({
       lobby_id: lobbyId,
       user_id: userId,
-      status: "joined",
+      status: "invited",
     } as any);
 
     if (error) {
       toast.error("Failed to invite player");
     } else {
-      toast.success("Player added to lobby!");
+      toast.success("Invite sent!");
       fetchLobbyMembers(lobbyId);
     }
   };
@@ -257,7 +285,7 @@ export default function Lobby() {
           <LobbyArea
             members={lobbyMembers}
             maxMembers={MAX_LOBBY_MEMBERS}
-            isHost={true}
+            isHost={lobbyHostId === user.id}
             onRemoveMember={handleRemoveMember}
             onStartTest={handleStartTest}
             lobbyField={selectedField}
@@ -273,6 +301,9 @@ export default function Lobby() {
         onAccept={acceptRequest}
         onReject={rejectRequest}
       />
+
+      {/* Lobby invite notifications */}
+      <LobbyInviteNotification />
     </div>
   );
 }
