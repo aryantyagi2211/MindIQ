@@ -9,6 +9,7 @@ import Header from "@/components/Header";
 import LobbySidebar from "@/components/lobby/LobbySidebar";
 import LobbyArea from "@/components/lobby/LobbyArea";
 import Mailbox from "@/components/lobby/Mailbox";
+import LobbyInviteNotification from "@/components/lobby/LobbyInviteNotification";
 import { toast } from "sonner";
 
 const MAX_LOBBY_MEMBERS = 4;
