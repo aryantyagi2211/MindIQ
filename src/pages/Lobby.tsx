@@ -29,7 +29,7 @@ export default function Lobby() {
   const [lobbyHostId, setLobbyHostId] = useState<string | null>(null);
   const [selectedField, setSelectedField] = useState("Technology");
 
-  // Fetch all world players + real-time presence
+  // Fetch all world players
   const fetchPlayers = useCallback(async () => {
     const { data } = await supabase
       .from("profiles")
@@ -38,55 +38,64 @@ export default function Lobby() {
     setWorldPlayers(data || []);
   }, []);
 
+  // Real-time presence updates for world players
   useEffect(() => {
     fetchPlayers();
 
-    // Subscribe to real-time profile changes (online/offline status)
     const channel = supabase
       .channel("profiles-presence")
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "profiles" },
-        () => fetchPlayers()
+        (payload: any) => {
+          // Update the specific player in-place for instant UI update
+          setWorldPlayers(prev => prev.map(p =>
+            p.user_id === payload.new.user_id
+              ? { ...p, is_online: payload.new.is_online, last_seen: payload.new.last_seen }
+              : p
+          ));
+        }
       )
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, [fetchPlayers]);
 
-  // Create or fetch existing lobby (as host or joined member)
-  useEffect(() => {
+  // Initialize lobby
+  const initLobby = useCallback(async (forcelobbyId?: string) => {
     if (!user) return;
 
-    const initLobby = async () => {
-      // Check if user has an active lobby as host
-      const { data: existing } = await supabase
+    // If we're told to join a specific lobby
+    if (forcelobbyId) {
+      const { data: lobby } = await supabase
         .from("lobbies")
         .select("*")
-        .eq("host_id", user.id)
+        .eq("id", forcelobbyId)
         .eq("status", "waiting")
-        .limit(1) as any;
+        .single() as any;
 
-      if (existing && existing.length > 0) {
-        setLobbyId(existing[0].id);
-        setLobbyHostId(existing[0].host_id);
-        fetchLobbyMembers(existing[0].id);
+      if (lobby) {
+        setLobbyId(lobby.id);
+        setLobbyHostId(lobby.host_id);
+        fetchLobbyMembers(lobby.id);
         return;
       }
+    }
 
-      // Check if user has joined someone else's lobby
-      const { data: memberships } = await supabase
-        .from("lobby_members")
-        .select("lobby_id")
-        .eq("user_id", user.id)
-        .eq("status", "joined") as any;
+    // Check if user has joined someone else's lobby FIRST
+    const { data: memberships } = await supabase
+      .from("lobby_members")
+      .select("lobby_id")
+      .eq("user_id", user.id)
+      .eq("status", "joined") as any;
 
-      if (memberships && memberships.length > 0) {
-        // Check if that lobby is still active
+    if (memberships && memberships.length > 0) {
+      // Find an active lobby from these memberships
+      for (const m of memberships) {
         const { data: activeLobby } = await supabase
           .from("lobbies")
           .select("*")
-          .eq("id", memberships[0].lobby_id)
+          .eq("id", m.lobby_id)
           .eq("status", "waiting")
           .single() as any;
 
@@ -97,28 +106,55 @@ export default function Lobby() {
           return;
         }
       }
+    }
 
-      // Create a new lobby
-      const { data: newLobby } = await supabase
-        .from("lobbies")
-        .insert({ host_id: user.id, field: selectedField, subfield: "General" } as any)
-        .select()
-        .single() as any;
+    // Check if user has an active lobby as host
+    const { data: existing } = await supabase
+      .from("lobbies")
+      .select("*")
+      .eq("host_id", user.id)
+      .eq("status", "waiting")
+      .limit(1) as any;
 
-      if (newLobby) {
-        setLobbyId(newLobby.id);
-        // Add self as member
-        await supabase.from("lobby_members").insert({
-          lobby_id: newLobby.id,
-          user_id: user.id,
-          status: "joined",
-        } as any);
-        fetchLobbyMembers(newLobby.id);
-      }
-    };
+    if (existing && existing.length > 0) {
+      setLobbyId(existing[0].id);
+      setLobbyHostId(existing[0].host_id);
+      fetchLobbyMembers(existing[0].id);
+      return;
+    }
 
+    // Create a new lobby
+    const { data: newLobby } = await supabase
+      .from("lobbies")
+      .insert({ host_id: user.id, field: selectedField, subfield: "General" } as any)
+      .select()
+      .single() as any;
+
+    if (newLobby) {
+      setLobbyId(newLobby.id);
+      setLobbyHostId(newLobby.host_id);
+      await supabase.from("lobby_members").insert({
+        lobby_id: newLobby.id,
+        user_id: user.id,
+        status: "joined",
+      } as any);
+      fetchLobbyMembers(newLobby.id);
+    }
+  }, [user, selectedField]);
+
+  useEffect(() => {
     initLobby();
   }, [user]);
+
+  // Listen for lobby-switched events from LobbyInviteNotification
+  useEffect(() => {
+    const handler = (e: any) => {
+      const { lobbyId: newLobbyId } = e.detail;
+      initLobby(newLobbyId);
+    };
+    window.addEventListener("lobby-switched", handler);
+    return () => window.removeEventListener("lobby-switched", handler);
+  }, [initLobby]);
 
   const fetchLobbyMembers = useCallback(async (lId: string) => {
     const { data: members } = await supabase
@@ -179,7 +215,6 @@ export default function Lobby() {
       return;
     }
 
-    // Check if already in lobby
     const { data: existing } = await supabase
       .from("lobby_members")
       .select("id")
@@ -201,7 +236,6 @@ export default function Lobby() {
       toast.error("Failed to invite player");
     } else {
       toast.success("Invite sent!");
-      fetchLobbyMembers(lobbyId);
     }
   };
 
@@ -218,12 +252,51 @@ export default function Lobby() {
     fetchLobbyMembers(lobbyId);
   };
 
+  const handleExitLobby = async () => {
+    if (!lobbyId || !user) return;
+
+    const isHost = lobbyHostId === user.id;
+
+    if (isHost) {
+      // Host leaving: delete all members and the lobby
+      await supabase.from("lobby_members").delete().eq("lobby_id", lobbyId);
+      await supabase.from("lobbies").delete().eq("id", lobbyId);
+      toast.success("Lobby disbanded");
+    } else {
+      // Member leaving: just remove self
+      await supabase.from("lobby_members").delete().eq("lobby_id", lobbyId).eq("user_id", user.id);
+      toast.success("Left the lobby");
+    }
+
+    // Reset state and create a new lobby
+    setLobbyId(null);
+    setLobbyMembers([]);
+    setLobbyHostId(null);
+
+    // Create a fresh lobby for the user
+    const { data: newLobby } = await supabase
+      .from("lobbies")
+      .insert({ host_id: user.id, field: selectedField, subfield: "General" } as any)
+      .select()
+      .single() as any;
+
+    if (newLobby) {
+      setLobbyId(newLobby.id);
+      setLobbyHostId(newLobby.host_id);
+      await supabase.from("lobby_members").insert({
+        lobby_id: newLobby.id,
+        user_id: user.id,
+        status: "joined",
+      } as any);
+      fetchLobbyMembers(newLobby.id);
+    }
+  };
+
   const handleStartTest = () => {
     if (lobbyMembers.length < 1) {
       toast.error("Need at least 1 player to start");
       return;
     }
-    // Navigate to test setup with lobby context
     navigate(`/test/setup?lobby=${lobbyId}`);
   };
 
@@ -267,7 +340,6 @@ export default function Lobby() {
 
       <main className="relative container pt-24 pb-24 z-10">
         <div className="flex flex-col lg:flex-row gap-6 min-h-[80vh]">
-          {/* Sidebar */}
           <LobbySidebar
             activeTab={activeTab}
             onTabChange={setActiveTab}
@@ -281,19 +353,18 @@ export default function Lobby() {
             currentUserId={user.id}
           />
 
-          {/* Lobby area */}
           <LobbyArea
             members={lobbyMembers}
             maxMembers={MAX_LOBBY_MEMBERS}
             isHost={lobbyHostId === user.id}
             onRemoveMember={handleRemoveMember}
             onStartTest={handleStartTest}
+            onExitLobby={handleExitLobby}
             lobbyField={selectedField}
           />
         </div>
       </main>
 
-      {/* Mailbox modal */}
       <Mailbox
         open={mailboxOpen}
         onClose={() => setMailboxOpen(false)}
@@ -302,7 +373,6 @@ export default function Lobby() {
         onReject={rejectRequest}
       />
 
-      {/* Lobby invite notifications */}
       <LobbyInviteNotification />
     </div>
   );

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Users, Check, X, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 interface Invite {
@@ -14,12 +15,12 @@ interface Invite {
 
 export default function LobbyInviteNotification() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [invites, setInvites] = useState<Invite[]>([]);
 
   const fetchInvites = async () => {
     if (!user) return;
 
-    // Get lobby_members where user is invited (status = 'invited')
     const { data: memberships } = await supabase
       .from("lobby_members")
       .select("id, lobby_id")
@@ -31,7 +32,6 @@ export default function LobbyInviteNotification() {
       return;
     }
 
-    // Get lobby details + host profiles
     const lobbyIds = memberships.map((m: any) => m.lobby_id);
     const { data: lobbies } = await supabase
       .from("lobbies")
@@ -76,10 +76,7 @@ export default function LobbyInviteNotification() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "lobby_members" },
-        (payload: any) => {
-          // Re-fetch when there's a change relevant to this user
-          fetchInvites();
-        }
+        () => fetchInvites()
       )
       .subscribe();
 
@@ -87,6 +84,26 @@ export default function LobbyInviteNotification() {
   }, [user]);
 
   const handleAccept = async (invite: Invite) => {
+    if (!user) return;
+
+    // 1. Delete user's own lobby (if they created one and are the only member)
+    const { data: ownLobbies } = await supabase
+      .from("lobbies")
+      .select("id")
+      .eq("host_id", user.id)
+      .eq("status", "waiting") as any;
+
+    if (ownLobbies && ownLobbies.length > 0) {
+      for (const ownLobby of ownLobbies) {
+        if (ownLobby.id !== invite.lobby_id) {
+          // Delete own lobby members first, then lobby
+          await supabase.from("lobby_members").delete().eq("lobby_id", ownLobby.id).eq("user_id", user.id);
+          await supabase.from("lobbies").delete().eq("id", ownLobby.id);
+        }
+      }
+    }
+
+    // 2. Accept the invite
     const { error } = await supabase
       .from("lobby_members")
       .update({ status: "joined" } as any)
@@ -97,6 +114,10 @@ export default function LobbyInviteNotification() {
     } else {
       toast.success("Joined lobby!");
       setInvites((prev) => prev.filter((i) => i.id !== invite.id));
+      // 3. Dispatch custom event so Lobby page re-initializes
+      window.dispatchEvent(new CustomEvent("lobby-switched", { detail: { lobbyId: invite.lobby_id } }));
+      // Navigate to lobby if not already there
+      navigate("/lobby");
     }
   };
 
