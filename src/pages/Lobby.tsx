@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { usePresence } from "@/hooks/usePresence";
 import { useFriends } from "@/hooks/useFriends";
@@ -11,6 +11,7 @@ import LobbyArea from "@/components/lobby/LobbyArea";
 import Mailbox from "@/components/lobby/Mailbox";
 import LobbyInviteNotification from "@/components/lobby/LobbyInviteNotification";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 const MAX_LOBBY_MEMBERS = 4;
 
@@ -29,6 +30,7 @@ export default function Lobby() {
   const [lobbyHostId, setLobbyHostId] = useState<string | null>(null);
   const [selectedField, setSelectedField] = useState("Technology");
   const [inviteStatuses, setInviteStatuses] = useState<Record<string, "pending" | "accepted">>({});
+  const [hostStarting, setHostStarting] = useState(false);
 
   // Fetch all world players
   const fetchPlayers = useCallback(async () => {
@@ -49,7 +51,6 @@ export default function Lobby() {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "profiles" },
         (payload: any) => {
-          // Update the specific player in-place for instant UI update
           setWorldPlayers(prev => prev.map(p =>
             p.user_id === payload.new.user_id
               ? { ...p, is_online: payload.new.is_online, last_seen: payload.new.last_seen }
@@ -66,7 +67,6 @@ export default function Lobby() {
   const initLobby = useCallback(async (forcelobbyId?: string) => {
     if (!user) return;
 
-    // If we're told to join a specific lobby
     if (forcelobbyId) {
       const { data: lobby } = await supabase
         .from("lobbies")
@@ -83,7 +83,7 @@ export default function Lobby() {
       }
     }
 
-    // Check if user has joined someone else's lobby FIRST
+    // Check if user has joined someone else's lobby
     const { data: memberships } = await supabase
       .from("lobby_members")
       .select("lobby_id")
@@ -91,7 +91,6 @@ export default function Lobby() {
       .eq("status", "joined") as any;
 
     if (memberships && memberships.length > 0) {
-      // Find an active lobby from these memberships
       for (const m of memberships) {
         const { data: activeLobby } = await supabase
           .from("lobbies")
@@ -175,7 +174,6 @@ export default function Lobby() {
       .select("user_id, username, avatar_url, country, is_online, last_seen")
       .in("user_id", userIds) as any;
 
-    // Fetch latest test results for each member
     const membersWithResults = await Promise.all(
       (profiles || []).map(async (p: any) => {
         const { data: result } = await supabase
@@ -191,7 +189,6 @@ export default function Lobby() {
 
     setLobbyMembers(membersWithResults);
 
-    // Update invite statuses - mark joined members as accepted
     setInviteStatuses(prev => {
       const updated = { ...prev };
       userIds.forEach((uid: string) => {
@@ -203,7 +200,7 @@ export default function Lobby() {
     });
   }, []);
 
-  // Subscribe to lobby changes
+  // Subscribe to lobby_members AND lobby status changes
   useEffect(() => {
     if (!lobbyId) return;
 
@@ -212,12 +209,68 @@ export default function Lobby() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "lobby_members", filter: `lobby_id=eq.${lobbyId}` },
-        () => fetchLobbyMembers(lobbyId)
+        (payload: any) => {
+          // If a member was deleted (left/removed/kicked)
+          if (payload.eventType === "DELETE" && payload.old) {
+            const removedUserId = payload.old.user_id;
+            // If I was removed, reinitialize
+            if (removedUserId === user?.id) {
+              toast.info("You were removed from the lobby");
+              setLobbyId(null);
+              setLobbyMembers([]);
+              setLobbyHostId(null);
+              setInviteStatuses({});
+              initLobby();
+              return;
+            }
+          }
+          fetchLobbyMembers(lobbyId);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "lobbies", filter: `id=eq.${lobbyId}` },
+        (payload: any) => {
+          const newStatus = payload.new.status;
+          // Host started the test - show overlay for non-host members
+          if (newStatus === "generating_questions" && user?.id !== payload.new.host_id) {
+            setHostStarting(true);
+          }
+          // Questions are ready - navigate all non-host members to test
+          if (newStatus === "in_progress" && payload.new.questions && user?.id !== payload.new.host_id) {
+            setHostStarting(false);
+            navigate("/test/take", {
+              state: {
+                qualification: payload.new.qualification,
+                difficulty: payload.new.difficulty,
+                stream: payload.new.stream || undefined,
+                examType: "mcq",
+                lobbyId: lobbyId,
+                isLobbyTest: true,
+              }
+            });
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "lobbies", filter: `id=eq.${lobbyId}` },
+        () => {
+          // Lobby was disbanded by host
+          if (user?.id !== lobbyHostId) {
+            toast.info("The lobby was disbanded by the host");
+          }
+          setLobbyId(null);
+          setLobbyMembers([]);
+          setLobbyHostId(null);
+          setInviteStatuses({});
+          initLobby();
+        }
       )
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [lobbyId, fetchLobbyMembers]);
+  }, [lobbyId, fetchLobbyMembers, user, lobbyHostId, initLobby, navigate]);
 
   const handleInviteToLobby = async (userId: string) => {
     if (!lobbyId || !user) return;
@@ -234,7 +287,7 @@ export default function Lobby() {
       .eq("user_id", userId) as any;
 
     if (existing && existing.length > 0) {
-      toast.info("Player already in lobby");
+      toast.info("Player already invited or in lobby");
       return;
     }
 
@@ -248,7 +301,6 @@ export default function Lobby() {
       toast.error("Failed to invite player");
     } else {
       toast.success("Invite sent!");
-      // Mark as pending
       setInviteStatuses(prev => ({ ...prev, [userId]: "pending" }));
     }
   };
@@ -263,7 +315,6 @@ export default function Lobby() {
       .eq("user_id", userId) as any;
 
     toast.success("Player removed");
-    fetchLobbyMembers(lobbyId);
   };
 
   const handleExitLobby = async () => {
@@ -272,23 +323,22 @@ export default function Lobby() {
     const isHost = lobbyHostId === user.id;
 
     if (isHost) {
-      // Host leaving: delete all members and the lobby
+      // Host: delete all members first, then lobby (triggers realtime for all members)
       await supabase.from("lobby_members").delete().eq("lobby_id", lobbyId);
       await supabase.from("lobbies").delete().eq("id", lobbyId);
       toast.success("Lobby disbanded");
     } else {
-      // Member leaving: just remove self
+      // Member: just remove self
       await supabase.from("lobby_members").delete().eq("lobby_id", lobbyId).eq("user_id", user.id);
       toast.success("Left the lobby");
     }
 
-    // Reset state and create a new lobby
+    // Reset and create fresh lobby
     setLobbyId(null);
     setLobbyMembers([]);
     setLobbyHostId(null);
     setInviteStatuses({});
 
-    // Create a fresh lobby for the user
     const { data: newLobby } = await supabase
       .from("lobbies")
       .insert({ host_id: user.id, field: selectedField, subfield: "General" } as any)
@@ -312,7 +362,6 @@ export default function Lobby() {
       toast.error("Need at least 1 player to start");
       return;
     }
-    // Navigate to test setup with lobby context
     navigate(`/test/setup?lobbyId=${lobbyId}`);
   };
 
@@ -391,6 +440,46 @@ export default function Lobby() {
       />
 
       <LobbyInviteNotification />
+
+      {/* Host Starting Overlay for non-host members */}
+      <AnimatePresence>
+        {hostStarting && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center"
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              className="text-center space-y-6"
+            >
+              <div className="relative inline-block">
+                <div className="absolute inset-0 bg-yellow-500/30 blur-3xl rounded-full scale-150 animate-pulse" />
+                <Loader2 className="h-16 w-16 text-yellow-500 relative z-10 animate-spin" />
+              </div>
+              <div>
+                <h2 className="text-2xl md:text-3xl font-black italic tracking-tighter text-white uppercase">
+                  Host is <span className="text-yellow-500">Starting</span> the Match
+                </h2>
+                <p className="text-white/40 text-sm mt-2">Preparing your assessment...</p>
+              </div>
+              <div className="flex items-center justify-center gap-1">
+                {[0, 1, 2].map(i => (
+                  <motion.div
+                    key={i}
+                    animate={{ opacity: [0.3, 1, 0.3] }}
+                    transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
+                    className="w-2 h-2 rounded-full bg-yellow-500"
+                  />
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

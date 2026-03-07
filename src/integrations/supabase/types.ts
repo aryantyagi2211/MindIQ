@@ -182,8 +182,12 @@ export type Database = {
           field: string
           host_id: string
           id: string
+          qualification: string | null
+          questions: Json | null
           status: string
+          stream: string | null
           subfield: string
+          test_started_at: string | null
           updated_at: string
         }
         Insert: {
@@ -192,8 +196,12 @@ export type Database = {
           field?: string
           host_id: string
           id?: string
+          qualification?: string | null
+          questions?: Json | null
           status?: string
+          stream?: string | null
           subfield?: string
+          test_started_at?: string | null
           updated_at?: string
         }
         Update: {
@@ -202,8 +210,12 @@ export type Database = {
           field?: string
           host_id?: string
           id?: string
+          qualification?: string | null
+          questions?: Json | null
           status?: string
+          stream?: string | null
           subfield?: string
+          test_started_at?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -233,6 +245,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "lobby_members_lobby_id_fkey"
+            columns: ["lobby_id"]
+            isOneToOne: false
+            referencedRelation: "lobbies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lobby_test_results: {
+        Row: {
+          answers: Json
+          completed_at: string | null
+          created_at: string
+          id: string
+          lobby_id: string
+          scores: Json | null
+          time_data: Json
+          user_id: string
+        }
+        Insert: {
+          answers?: Json
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          lobby_id: string
+          scores?: Json | null
+          time_data?: Json
+          user_id: string
+        }
+        Update: {
+          answers?: Json
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          lobby_id?: string
+          scores?: Json | null
+          time_data?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lobby_test_results_lobby_id_fkey"
             columns: ["lobby_id"]
             isOneToOne: false
             referencedRelation: "lobbies"
