@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Users, Check, X, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +17,7 @@ export default function LobbyInviteNotification() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [invites, setInvites] = useState<Invite[]>([]);
+  const processedRef = useRef<Set<string>>(new Set());
 
   const fetchInvites = async () => {
     if (!user) return;
@@ -32,7 +33,16 @@ export default function LobbyInviteNotification() {
       return;
     }
 
-    const lobbyIds = memberships.map((m: any) => m.lobby_id);
+    // Deduplicate: only keep latest invite per lobby
+    const latestPerLobby = new Map<string, any>();
+    for (const m of memberships) {
+      if (!latestPerLobby.has(m.lobby_id)) {
+        latestPerLobby.set(m.lobby_id, m);
+      }
+    }
+    const uniqueMemberships = Array.from(latestPerLobby.values());
+
+    const lobbyIds = uniqueMemberships.map((m: any) => m.lobby_id);
     const { data: lobbies } = await supabase
       .from("lobbies")
       .select("id, host_id")
@@ -50,7 +60,7 @@ export default function LobbyInviteNotification() {
       .select("user_id, username, avatar_url")
       .in("user_id", hostIds) as any;
 
-    const enriched: Invite[] = memberships
+    const enriched: Invite[] = uniqueMemberships
       .map((m: any) => {
         const lobby = lobbies.find((l: any) => l.id === m.lobby_id);
         if (!lobby) return null;
@@ -71,11 +81,22 @@ export default function LobbyInviteNotification() {
     if (!user) return;
     fetchInvites();
 
+    // Subscribe to lobby_members changes for this user specifically
     const channel = supabase
       .channel("lobby-invites-for-me")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "lobby_members" },
+        { event: "INSERT", schema: "public", table: "lobby_members" },
+        (payload: any) => {
+          // Only react if this invite is for me
+          if (payload.new.user_id === user.id && payload.new.status === "invited") {
+            fetchInvites();
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "lobby_members" },
         () => fetchInvites()
       )
       .subscribe();
@@ -86,7 +107,7 @@ export default function LobbyInviteNotification() {
   const handleAccept = async (invite: Invite) => {
     if (!user) return;
 
-    // 1. Delete user's own lobby (if they created one and are the only member)
+    // Delete user's own lobby (if they created one)
     const { data: ownLobbies } = await supabase
       .from("lobbies")
       .select("id")
@@ -96,14 +117,13 @@ export default function LobbyInviteNotification() {
     if (ownLobbies && ownLobbies.length > 0) {
       for (const ownLobby of ownLobbies) {
         if (ownLobby.id !== invite.lobby_id) {
-          // Delete own lobby members first, then lobby
           await supabase.from("lobby_members").delete().eq("lobby_id", ownLobby.id).eq("user_id", user.id);
           await supabase.from("lobbies").delete().eq("id", ownLobby.id);
         }
       }
     }
 
-    // 2. Accept the invite
+    // Accept the invite
     const { error } = await supabase
       .from("lobby_members")
       .update({ status: "joined" } as any)
@@ -114,9 +134,7 @@ export default function LobbyInviteNotification() {
     } else {
       toast.success("Joined lobby!");
       setInvites((prev) => prev.filter((i) => i.id !== invite.id));
-      // 3. Dispatch custom event so Lobby page re-initializes
       window.dispatchEvent(new CustomEvent("lobby-switched", { detail: { lobbyId: invite.lobby_id } }));
-      // Navigate to lobby if not already there
       navigate("/lobby");
     }
   };
@@ -136,7 +154,7 @@ export default function LobbyInviteNotification() {
       <AnimatePresence>
         {invites.map((invite) => (
           <motion.div
-            key={invite.id}
+            key={invite.lobby_id}
             initial={{ opacity: 0, x: 100, scale: 0.9 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: 100, scale: 0.9 }}
