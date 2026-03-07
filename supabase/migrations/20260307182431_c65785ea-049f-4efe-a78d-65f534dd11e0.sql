@@ -1,0 +1,1 @@
+ALTER TABLE public.lobby_members REPLICA IDENTITY FULL;

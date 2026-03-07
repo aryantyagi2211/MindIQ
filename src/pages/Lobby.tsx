@@ -210,7 +210,6 @@ export default function Lobby() {
         "postgres_changes",
         { event: "*", schema: "public", table: "lobby_members", filter: `lobby_id=eq.${lobbyId}` },
         (payload: any) => {
-          // If a member was deleted (left/removed/kicked)
           if (payload.eventType === "DELETE" && payload.old) {
             const removedUserId = payload.old.user_id;
             // If I was removed, reinitialize
@@ -223,8 +222,13 @@ export default function Lobby() {
               initLobby();
               return;
             }
+            // Another member left/was removed - update locally immediately
+            setLobbyMembers(prev => prev.filter(m => m.user_id !== removedUserId));
+            return;
           }
-          fetchLobbyMembers(lobbyId);
+          if (payload.eventType === "INSERT" || payload.eventType === "UPDATE") {
+            fetchLobbyMembers(lobbyId);
+          }
         }
       )
       .on(
