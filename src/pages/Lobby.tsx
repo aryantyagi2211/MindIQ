@@ -237,7 +237,7 @@ export default function Lobby() {
             setHostStarting(true);
           }
           // Questions are ready - navigate all non-host members to test
-          if (newStatus === "testing" && user?.id !== payload.new.host_id) {
+          if (newStatus === "in_progress" && payload.new.questions && user?.id !== payload.new.host_id) {
             setHostStarting(false);
             navigate("/test/take", {
               state: {
